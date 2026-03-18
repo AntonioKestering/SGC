@@ -14,6 +14,10 @@ interface SpecialistData {
   specialty: string;
   registry_number: string | null;
   color_code: string;
+  profile_id?: string | null;
+  full_name?: string;
+  email?: string;
+  // Supabase JOIN resulta em um objeto aninhado 'profiles'
   profiles: { full_name: string; email: string }[];
 }
 
