@@ -1,0 +1,48 @@
+[00:00:01.208] Server  LOG      ✓ Ready in 912ms
+[00:00:16.603] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:16.942] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:18.599] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:21.337] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:23.343] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:23.364] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:23.655] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:24.487] Server  LOG     [API] GET /api/specialists
+[00:00:24.735] Server  LOG     [API] Specialists query result: {}
+[00:00:24.981] Server  LOG     [API] GET /api/specialists
+[00:00:25.234] Server  LOG     [API] Specialists query result: {}
+[00:00:26.325] Server  LOG     [API] GET /api/patients iniciado
+[00:00:26.328] Browser LOG     [Page] Buscando pacientes de /api/patients
+[00:00:26.328] Browser LOG     [Page] Buscando pacientes de /api/patients
+[00:00:26.588] Server  LOG     [API] Pacientes carregados com sucesso: 1
+[00:00:26.596] Server  LOG     [API] GET /api/patients iniciado
+[00:00:26.695] Browser LOG     [Page] Resposta recebida: {"patients":[{"birth_date":"1993-07-21","cpf":"075.268.899-57","created_at":"2026-01-25T19:13:08.424044+00:00","full_name":"Antonio Ferro Kestering","id":"c2bc9888-f6b2-47f6-81f0-c478499798ab","medical_history":"Sem alergias.","phone":"48996922082"}]}
+[00:00:26.831] Server  LOG     [API] Pacientes carregados com sucesso: 1
+[00:00:26.946] Browser LOG     [Page] Resposta recebida: {"patients":[{"birth_date":"1993-07-21","cpf":"075.268.899-57","created_at":"2026-01-25T19:13:08.424044+00:00","full_name":"Antonio Ferro Kestering","id":"c2bc9888-f6b2-47f6-81f0-c478499798ab","medical_history":"Sem alergias.","phone":"48996922082"}]}
+[00:00:29.556] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:29.817] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:29.823] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:30.061] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:33.275] Server  LOG     [API] GET /api/appointments - startDate: "2026-02-01T03:00:00.000Z" "endDate:" "2026-02-08T02:59:59.999Z"
+[00:00:33.532] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:34.907] Server  LOG     [API] GET /api/appointments - startDate: "2026-02-01T03:00:00.000Z" "endDate:" "2026-03-01T02:59:59.999Z"
+[00:00:35.144] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:40.493] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-01T03:00:00.000Z" "endDate:" "2026-04-01T02:59:59.999Z"
+[00:00:40.767] Server  LOG     [API] Agendamentos carregados: 1
+[00:00:47.618] Server  LOG     [API] GET /api/specialists
+[00:00:47.625] Server  LOG     [API] GET /api/patients iniciado
+[00:00:47.904] Server  LOG     [API] Pacientes carregados com sucesso: 1
+[00:00:47.910] Server  LOG     [API] GET /api/patients iniciado
+[00:00:47.919] Server  LOG     [API] Specialists query result: {}
+[00:00:48.147] Server  LOG     [API] Pacientes carregados com sucesso: 1
+[00:00:48.167] Server  LOG     [API] GET /api/specialists
+[00:00:48.416] Server  LOG     [API] Specialists query result: {}
+[00:00:58.820] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:59.065] Server  LOG     [API] Agendamentos carregados: 0
+[00:00:59.072] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:00:59.314] Server  LOG     [API] Agendamentos carregados: 0
+[00:01:04.230] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-01T03:00:00.000Z" "endDate:" "2026-04-01T02:59:59.999Z"
+[00:01:04.511] Server  LOG     [API] Agendamentos carregados: 0
+[00:01:18.759] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:21.057] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:21.075] Server  LOG     [API] GET /api/appointments - startDate: "2026-03-15T03:00:00.000Z" "endDate:" "2026-03-22T02:59:59.999Z"
+[00:01:21.361] Server  LOG     [API] Agendamentos carregados: 0

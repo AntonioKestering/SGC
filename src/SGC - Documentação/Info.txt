@@ -1,0 +1,16 @@
+Documentação SGC:
+
+Indicação do Gemini:
+Frontend (A Cara do Site)	React (com Vite) ou Next.js	Padrão de mercado, funciona como um app nativo (SPA).
+Linguagem	TypeScript	JavaScript com tipagem. Evita erros bobos durante o desenvolvimento.
+UI Kit (Visual Pronto)	Shadcn/UI ou MUI (Material UI)	Componentes prontos (botões, tabelas, formulários) bonitos e gratuitos.
+Banco de Dados & Auth	Supabase	A "mágica". Oferece Banco SQL (Postgres), Login e API grátis.
+Hospedagem (Onde fica o site)	Vercel ou Netlify	Hospedagem gratuita vitalícia para projetos pessoais/pequenos.
+Editor de Código	VS Code	O melhor editor gratuito.
+Controle de Versão	GitHub	Para salvar seu código na nuvem.
+
+Banco de dados:
+supabase.com https://supabase.com/dashboard/project/wyhwpkmzwipgeihijgwe
+senha: !@#QWE123qwe!@#QWE
+
+Página para acessar a aplicação: http://localhost:3000/users
