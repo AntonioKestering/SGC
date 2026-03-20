@@ -1,10 +1,11 @@
 // src/app/api/patients/route.ts
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET() {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     console.log('[API] GET /api/patients iniciado');
 
     const { data: patients, error } = await supabaseAdmin
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { data, error } = await supabaseAdmin
       .from('patients')

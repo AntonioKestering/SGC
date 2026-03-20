@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { X } from 'lucide-react';
 
 interface PasswordResetModalProps {
@@ -12,6 +12,7 @@ interface PasswordResetModalProps {
 }
 
 export function PasswordResetModal({ isOpen, onClose }: PasswordResetModalProps) {
+  const supabase = getSupabaseClient();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

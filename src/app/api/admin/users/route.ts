@@ -1,10 +1,11 @@
 // src/app/api/admin/users/route.ts
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET() {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     console.log('[API] GET /api/admin/users iniciado');
     console.log('[API] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
     console.log('[API] SUPABASE_SERVICE_ROLE_KEY definida:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);

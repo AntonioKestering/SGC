@@ -1,6 +1,6 @@
 // src/app/api/specialists/[id]/route.ts
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -10,6 +10,7 @@ export async function GET(
   try {
     const { id } = await params;
     console.log('[API] GET /api/specialists/[id]', id);
+    const supabaseAdmin = getSupabaseAdmin();
 
     // Busca o especialista incluindo o campo profile_id
     const { data: specialist, error: specError } = await supabaseAdmin
@@ -65,6 +66,8 @@ export async function PUT(
     const { specialty, registry_number, color_code } = body;
 
     console.log('[API] PUT /api/specialists/[id]', id);
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     if (!specialty) {
       return NextResponse.json(
@@ -123,23 +126,41 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const supabaseAdmin = getSupabaseAdmin();
     console.log('[API] DELETE /api/specialists/[id]', id);
 
-    const { error } = await supabaseAdmin
+    // Verifica se o especialista existe (inclui profiles se houver)
+    const { data: specialist, error: specError } = await supabaseAdmin
+      .from('specialists')
+      .select('id, profile_id, specialty, registry_number, color_code, profiles(id, full_name, email)')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (specError) {
+      console.error('[API] Error fetching specialist:', specError);
+      return NextResponse.json({ error: specError.message || 'Erro ao buscar especialista' }, { status: 400 });
+    }
+
+    if (!specialist) {
+      return NextResponse.json({ error: 'Especialista não encontrado' }, { status: 404 });
+    }
+
+    // Executa o delete
+    const { error: deleteError } = await supabaseAdmin
       .from('specialists')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('[API] Error:', error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (deleteError) {
+      console.error('[API] Delete Error:', deleteError);
+      return NextResponse.json({ error: deleteError.message || 'Erro ao deletar especialista' }, { status: 500 });
     }
 
     return NextResponse.json({ message: 'Especialista deletado com sucesso' });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[API] Error:', err);
     return NextResponse.json(
-      { error: 'Erro ao deletar especialista' },
+      { error: err.message || 'Erro ao deletar especialista' },
       { status: 500 }
     );
   }

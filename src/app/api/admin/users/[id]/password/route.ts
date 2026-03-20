@@ -1,7 +1,7 @@
 // src/app/api/admin/users/[id]/password/route.ts
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function PUT(
   request: Request,
@@ -17,6 +17,7 @@ export async function PUT(
   }
 
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const body = await request.json();
     const { password } = body;
 

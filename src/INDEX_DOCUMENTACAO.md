@@ -176,8 +176,9 @@ sgc/
 - **Async Params:** Parâmetros dinâmicos são Promises
 
 ### Autenticação
-- **Client:** Usar `supabase` do `lib/supabaseClient.ts`
-- **Server:** Usar `supabaseAdmin` do `lib/supabaseAdmin.ts`
+- **Client:** Recomendado usar `getSupabaseClient()` do `lib/supabaseClient.ts` (inicialização tardia).
+- **Server:** Recomendado usar `getSupabaseAdmin()` do `lib/supabaseAdmin.ts` (service role).
+- **Nota:** Para compatibilidade retroativa os proxies `supabase` e `supabaseAdmin` ainda estão disponíveis, mas preferimos os getters para tornar a inicialização explícita.
 - **Session:** Gerenciado automaticamente pelo Supabase
 
 ---

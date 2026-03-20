@@ -1,7 +1,7 @@
 // src/app/api/appointments/[id]/route.ts
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(
   request: Request,
@@ -9,6 +9,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { data: appointment, error } = await supabaseAdmin
       .from('appointments')
@@ -50,6 +52,8 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     const { data, error } = await supabaseAdmin
       .from('appointments')
       .update(body)
@@ -84,6 +88,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { error } = await supabaseAdmin
       .from('appointments')
