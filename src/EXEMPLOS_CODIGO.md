@@ -17,7 +17,9 @@ Este documento contém exemplos práticos para desenvolvedores que querem entend
 ### Fazer Login
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function handleLogin(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,7 +40,9 @@ async function handleLogin(email: string, password: string) {
 ### Registrar Novo Usuário
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function handleSignUp(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
@@ -58,7 +62,9 @@ async function handleSignUp(email: string, password: string) {
 ### Fazer Logout
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function handleLogout() {
   const { error } = await supabase.auth.signOut();
@@ -73,7 +79,9 @@ async function handleLogout() {
 
 ```typescript
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 export function useCurrentUser() {
   const [user, setUser] = useState(null);
@@ -93,7 +101,9 @@ export function useCurrentUser() {
 ### Reset de Senha
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function resetPassword(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -109,7 +119,9 @@ async function resetPassword(email: string) {
 ### Atualizar Senha
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function updatePassword(newPassword: string) {
   const { error } = await supabase.auth.updateUser({
@@ -129,7 +141,9 @@ async function updatePassword(newPassword: string) {
 ### Ler Dados (Cliente)
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function getUserProfile(userId: string) {
   const { data, error } = await supabase
@@ -150,7 +164,9 @@ async function getUserProfile(userId: string) {
 ### Ler Dados com Filtro
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function getAdminUsers() {
   const { data, error } = await supabase
@@ -165,7 +181,9 @@ async function getAdminUsers() {
 ### Inserir Dados (Cliente)
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function createProfile(userId: string, fullName: string, phone: string) {
   const { data, error } = await supabase
@@ -190,7 +208,9 @@ async function createProfile(userId: string, fullName: string, phone: string) {
 ### Atualizar Dados (Cliente)
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function updateProfile(userId: string, updates: any) {
   const { data, error } = await supabase
@@ -209,7 +229,9 @@ async function updateProfile(userId: string, updates: any) {
 ### Deletar Dados (Cliente)
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 async function deleteProfile(userId: string) {
   const { error } = await supabase
@@ -226,7 +248,9 @@ async function deleteProfile(userId: string) {
 ### Listar Usuários (Servidor - Admin)
 
 ```typescript
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 export async function listAllUsers() {
   const { data, error } = await supabaseAdmin.auth.admin.listUsers();
@@ -243,7 +267,9 @@ export async function listAllUsers() {
 ### Deletar Usuário (Servidor - Admin)
 
 ```typescript
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 export async function deleteUser(userId: string) {
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -257,7 +283,9 @@ export async function deleteUser(userId: string) {
 ### Atualizar Senha (Servidor - Admin)
 
 ```typescript
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 export async function updateUserPassword(userId: string, newPassword: string) {
   const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -318,7 +346,9 @@ export default function Counter() {
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+
+const supabase = getSupabaseClient();
 
 export default function UserList() {
   const [users, setUsers] = useState([]);

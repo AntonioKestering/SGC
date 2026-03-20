@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { formatPhone } from '@/lib/phoneFormatter';
 
 const roles = [
@@ -13,6 +13,7 @@ const roles = [
 ];
 
 export default function UserRegisterForm() {
+  const supabase = getSupabaseClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { UserCog } from 'lucide-react';
 
 // Tipagem simples para o perfil que vamos buscar
@@ -17,6 +17,7 @@ interface Profile {
 
 export default function NewSpecialistPage() {
   const router = useRouter();
+  const supabase = getSupabaseClient();
   
   // Estado dos dados do especialista
   const [profileId, setProfileId] = useState('');

@@ -5,8 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { supabase } from '@/lib/supabaseClient';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { UserCog, Save } from 'lucide-react';
 import { formatPhone } from '@/lib/phoneFormatter';
 
@@ -30,6 +29,8 @@ export default function EditUserPage() {
   const params = useParams();
   const userId = params.id as string;
   const router = useRouter();
+
+  const supabase = getSupabaseClient();
 
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [fullName, setFullName] = useState('');

@@ -161,6 +161,10 @@ const datetimeLocal = convertToDatetimeLocal(isoString);
 
 ### Busca com Relacionamentos
 ```typescript
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+
+const supabaseAdmin = getSupabaseAdmin();
+
 const { data } = await supabaseAdmin
   .from('appointments')
   .select('*, specialist:specialist_id(*), patient:patient_id(*)')

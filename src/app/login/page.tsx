@@ -3,7 +3,7 @@
 'use client'; // Indica que este é um componente interativo do lado do cliente
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient'; // Importa a conexão que você criou
+import { getSupabaseClient } from '@/lib/supabaseClient'; // Importa a conexão que você criou
 import { useRouter } from 'next/navigation';
 import { PasswordResetModal } from '@/components/PasswordResetModal';
 
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const router = useRouter();
+  const supabase = getSupabaseClient();
 
   // Função para mapear erros do Supabase para mensagens amigáveis
   const getErrorMessage = (errorMessage: string) => {

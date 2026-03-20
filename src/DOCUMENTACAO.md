@@ -409,8 +409,10 @@ export async function POST(request: Request) {
 ### Usar Supabase no Cliente
 
 ```typescript
-import { supabase } from '@/lib/supabaseClient';
+// Recomendado: usar o getter `getSupabaseClient()` para inicialização tardia
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
+const supabase = getSupabaseClient();
 const { data, error } = await supabase
   .from('profiles')
   .select('*')
@@ -420,10 +422,14 @@ const { data, error } = await supabase
 ### Usar Supabase no Servidor
 
 ```typescript
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+// Recomendado: usar o getter `getSupabaseAdmin()` no servidor
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
+const supabaseAdmin = getSupabaseAdmin();
 const { data, error } = await supabaseAdmin.auth.admin.listUsers();
 ```
+
+Nota: Para compatibilidade retroativa, ainda é possível importar `supabase` e `supabaseAdmin` diretamente — eles funcionarão como proxies que inicializam o cliente na primeira utilização. Preferimos, entretanto, usar `getSupabaseClient()` / `getSupabaseAdmin()` para tornar a inicialização explícita.
 
 ### Formatar Telefone
 

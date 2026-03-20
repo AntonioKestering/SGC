@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { UserCog, PlusCircle } from 'lucide-react';
 
 // Tipagem para os dados combinados (Specialist + Profile)
@@ -25,6 +25,7 @@ export default function SpecialistsIndexPage() {
   const router = useRouter();
   const [specialists, setSpecialists] = useState<SpecialistData[]>([]);
   const [loading, setLoading] = useState(true);
+  const supabase = getSupabaseClient();
 
   // 1. FUNÇÃO PARA BUSCAR ESPECIALISTAS
   useEffect(() => {

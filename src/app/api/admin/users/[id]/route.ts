@@ -1,7 +1,7 @@
 // src/app/api/admin/users/[id]/route.ts
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,6 +10,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (error) {
       console.error('Erro deleteUser admin:', error);
