@@ -1,6 +1,0 @@
-1:"$Sreact.fragment"
-2:I[92169,["/_next/static/chunks/fefba00cdaaae1b8.js","/_next/static/chunks/4faf01136dc66e48.js","/_next/static/chunks/b56a0f60a564cf4d.js"],"DashboardLayout"]
-3:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/247eb132b7f7b574.js"],"OutletBoundary"]
-4:"$Sreact.suspense"
-0:{"buildId":"EJPmxe68gBeM2zEjuGa37","rsc":["$","$1","c",{"children":[["$","$L2",null,{"children":[["$","h2",null,{"className":"text-2xl font-semibold text-zinc-50","children":"Visão Geral"}],["$","p",null,{"className":"mt-2 text-zinc-400","children":"Acompanhe os principais indicadores da clínica."}],["$","div",null,{"className":"mt-8 grid grid-cols-1 md:grid-cols-3 gap-6","children":["$","div",null,{"className":"bg-zinc-900 p-6 rounded-xl shadow-xl border-t-4 border-pink-500","children":[["$","h3",null,{"className":"text-xl font-medium text-zinc-200","children":"Agenda Hoje"}],["$","p",null,{"className":"mt-1 text-3xl font-bold text-zinc-50","children":"12"}],["$","p",null,{"className":"text-sm text-zinc-400","children":"Agendamentos Confirmados"}]]}]}]]}],[["$","script","script-0",{"src":"/_next/static/chunks/b56a0f60a564cf4d.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
-5:null
