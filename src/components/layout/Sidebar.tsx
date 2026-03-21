@@ -79,6 +79,19 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Botão de Configurações fixado no rodapé da sidebar */}
+      <div className="p-4">
+        <div className="mt-auto">
+          <Link
+            href="/settings"
+            className="flex items-center px-4 py-2 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-pink-500 transition-colors"
+          >
+            <UserCog className="w-5 h-5 mr-3" />
+            Configurações
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
