@@ -64,7 +64,7 @@ export default function ProductsPage() {
     }
   }
 
-  function formatDate(dateString?: string): string {
+  function formatDate(dateString?: string | null): string {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
