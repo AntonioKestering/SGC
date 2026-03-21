@@ -16,6 +16,7 @@ export default function NewProductPage() {
     stock_quantity: 0,
     expiry_date: '',
     price: '',
+    price_sale: '',
     supplier_id: '',
   });
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,7 @@ export default function NewProductPage() {
           stock_quantity: Number(formData.stock_quantity) || 0,
           expiry_date: formData.expiry_date || null,
           price: formData.price || null,
+          price_sale: formData.price_sale || null,
         }),
       });
 
@@ -160,6 +162,20 @@ export default function NewProductPage() {
               min="0"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              placeholder="0.00"
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
+            <input
+              id="price_sale"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.price_sale}
+              onChange={(e) => setFormData({ ...formData, price_sale: e.target.value })}
               placeholder="0.00"
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
             />

@@ -49,6 +49,7 @@ export async function PUT(
         stock_quantity: typeof body.stock_quantity === 'number' ? body.stock_quantity : (body.stock_quantity ? Number(body.stock_quantity) : 0),
         expiry_date: body.expiry_date || null,
         price: body.price || null,
+        price_sale: body.price_sale || null,
       })
       .eq('id', id)
       .select();

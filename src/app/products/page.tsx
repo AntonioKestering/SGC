@@ -15,7 +15,8 @@ interface ProductData {
   barcode?: string | null;
   stock_quantity: number;
   expiry_date?: string | null;
-  price?: string | null;
+    price?: string | null;
+    price_sale?: string | null;
   created_at: string;
 }
 
@@ -122,6 +123,7 @@ export default function ProductsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Estoque</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Validade</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço de Venda</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
@@ -132,6 +134,7 @@ export default function ProductsPage() {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.stock_quantity ?? 0}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
                       <button
                         onClick={() => router.push(`/products/${p.id}/edit`)}

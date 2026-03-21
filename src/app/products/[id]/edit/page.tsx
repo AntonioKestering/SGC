@@ -31,6 +31,7 @@ export default function EditProductPage() {
   const [stockQuantity, setStockQuantity] = useState<number>(0);
   const [expiryDate, setExpiryDate] = useState('');
   const [price, setPrice] = useState('');
+  const [priceSale, setPriceSale] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +52,7 @@ export default function EditProductPage() {
         setStockQuantity(product.stock_quantity ?? 0);
         setExpiryDate(product.expiry_date || '');
         setPrice(product.price || '');
+        setPriceSale(product.price_sale || '');
       } catch (err: any) {
         console.error('Erro ao carregar produto:', err);
         setError('Produto não encontrado ou erro de carregamento.');
@@ -84,6 +86,7 @@ export default function EditProductPage() {
           stock_quantity: Number(stockQuantity) || 0,
           expiry_date: expiryDate || null,
           price: price || null,
+          price_sale: priceSale || null,
         }),
       });
 
