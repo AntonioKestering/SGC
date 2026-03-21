@@ -57,7 +57,7 @@ export default function NewProductPage() {
       }
 
       setSuccess(true);
-      setFormData({ name: '', description: '', barcode: '', stock_quantity: 0, expiry_date: '', price: '', supplier_id: '' });
+      setFormData({ name: '', description: '', barcode: '', stock_quantity: 0, expiry_date: '', price: '', price_sale: '', supplier_id: '' });
 
       setTimeout(() => router.push('/products'), 1200);
     } catch (err: any) {
