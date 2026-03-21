@@ -67,17 +67,42 @@ export default function ProductsPage() {
 
   function formatDate(dateString?: string | null): string {
     if (!dateString) return '-';
+    // If the stored value is a date-only string (YYYY-MM-DD), avoid creating
+    // a Date object which may be interpreted in UTC and cause a timezone
+    // shift (showing the previous day). Instead format directly from the
+    // parts to preserve the exact date entered in the DB.
+    const dateOnly = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(dateString);
+    if (dateOnly) {
+      const [, year, month, day] = dateOnly;
+      return `${day}/${month}/${year}`;
+    }
+
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return String(dateString);
     return date.toLocaleDateString('pt-BR');
   }
 
-  function formatPrice(price?: string | null): string {
+  function formatPrice(price?: string | number | null): string {
     if (price == null || price === '') return '-';
     try {
-      const n = Number(price);
-      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const n = typeof price === 'number' ? price : Number(String(price).replace(',', '.'));
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } catch {
       return String(price);
+    }
+  }
+
+  function computeProfitPercent(price?: string | number | null, priceSale?: string | number | null): string {
+    if (price == null || price === '' ) return '-';
+    if (priceSale == null || priceSale === '') return '-';
+    try {
+      const p = typeof price === 'number' ? price : Number(String(price).replace(',', '.'));
+      const ps = typeof priceSale === 'number' ? priceSale : Number(String(priceSale).replace(',', '.'));
+      if (!p || p === 0) return '-';
+      const perc = ((ps - p) / p) * 100;
+      return perc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    } catch {
+      return '-';
     }
   }
 
@@ -122,8 +147,9 @@ export default function ProductsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Nome</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Estoque</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Validade</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço de Compra</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço de Venda</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Lucro (%)</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
@@ -135,6 +161,7 @@ export default function ProductsPage() {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{computeProfitPercent(p.price, p.price_sale)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
                       <button
                         onClick={() => router.push(`/products/${p.id}/edit`)}

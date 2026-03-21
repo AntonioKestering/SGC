@@ -46,8 +46,8 @@ export default function NewProductPage() {
           barcode: formData.barcode || null,
           stock_quantity: Number(formData.stock_quantity) || 0,
           expiry_date: formData.expiry_date || null,
-          price: formData.price || null,
-          price_sale: formData.price_sale || null,
+          price: formData.price !== '' ? Number(String(formData.price).replace(',', '.')) : null,
+          price_sale: formData.price_sale !== '' ? Number(String(formData.price_sale).replace(',', '.')) : null,
         }),
       });
 

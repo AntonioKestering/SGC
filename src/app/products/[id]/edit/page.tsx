@@ -16,6 +16,7 @@ interface ProductProfile {
   stock_quantity: number;
   expiry_date?: string | null;
   price?: string | null;
+  price_sale?: string | null;
   created_at: string;
 }
 
@@ -32,6 +33,7 @@ export default function EditProductPage() {
   const [expiryDate, setExpiryDate] = useState('');
   const [price, setPrice] = useState('');
   const [priceSale, setPriceSale] = useState('');
+  const [profitPercent, setProfitPercent] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,8 +53,17 @@ export default function EditProductPage() {
         setBarcode(product.barcode || '');
         setStockQuantity(product.stock_quantity ?? 0);
         setExpiryDate(product.expiry_date || '');
-        setPrice(product.price || '');
-        setPriceSale(product.price_sale || '');
+        setPrice(product.price != null ? String(Number(product.price).toFixed(2)) : '');
+        setPriceSale(product.price_sale != null ? String(Number(product.price_sale).toFixed(2)) : '');
+        // inicializa percentual de lucro
+        if (product.price != null && product.price !== 0 && product.price_sale != null) {
+          const p = Number(product.price);
+          const ps = Number(product.price_sale);
+          const perc = ((ps - p) / p) * 100;
+          setProfitPercent(String(Number(perc.toFixed(2))));
+        } else {
+          setProfitPercent('');
+        }
       } catch (err: any) {
         console.error('Erro ao carregar produto:', err);
         setError('Produto não encontrado ou erro de carregamento.');
@@ -85,8 +96,8 @@ export default function EditProductPage() {
           barcode: barcode || null,
           stock_quantity: Number(stockQuantity) || 0,
           expiry_date: expiryDate || null,
-          price: price || null,
-          price_sale: priceSale || null,
+          price: price !== '' ? Number(String(price).replace(',', '.')) : null,
+          price_sale: priceSale !== '' ? Number(String(priceSale).replace(',', '.')) : null,
         }),
       });
 
@@ -101,6 +112,32 @@ export default function EditProductPage() {
       setError(err.message || 'Erro ao atualizar produto');
     } finally {
       setSaving(false);
+    }
+  }
+
+  function computeProfitPercentFromStrings(priceStr: string, priceSaleStr: string): string {
+    if (!priceStr || priceStr === '') return '-';
+    if (!priceSaleStr || priceSaleStr === '') return '-';
+    try {
+      const p = Number(String(priceStr).replace(',', '.'));
+      const ps = Number(String(priceSaleStr).replace(',', '.'));
+      if (!p || p === 0) return '-';
+      const perc = ((ps - p) / p) * 100;
+      return perc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    } catch {
+      return '-';
+    }
+  }
+
+  function handleProfitPercentChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setProfitPercent(v);
+    // recalcula priceSale se tivermos price válido
+    const priceNum = Number(String(price).replace(',', '.'));
+    const percNum = Number(String(v).replace(',', '.'));
+    if (!isNaN(priceNum) && priceNum > 0 && !isNaN(percNum)) {
+      const newPriceSale = priceNum * (1 + percNum / 100);
+      setPriceSale(String(Number(newPriceSale.toFixed(2))));
     }
   }
 
@@ -202,18 +239,63 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço</label>
-            <input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
+              <input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
+              <input
+                id="price_sale"
+                type="number"
+                step="0.01"
+                min="0"
+                value={priceSale}
+                onChange={(e) => {
+                  setPriceSale(e.target.value);
+                  // atualizar percentual quando o usuário editar price_sale diretamente
+                  const pNum = Number(String(price).replace(',', '.'));
+                  const psNum = Number(String(e.target.value).replace(',', '.'));
+                  if (!isNaN(pNum) && pNum > 0 && !isNaN(psNum)) {
+                    const perc = ((psNum - pNum) / pNum) * 100;
+                    setProfitPercent(String(Number(perc.toFixed(2))));
+                  } else {
+                    setProfitPercent('');
+                  }
+                }}
+                placeholder="0.00"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
+          </div>
+
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div className="text-sm text-zinc-300">
+              <strong>Lucro (%):</strong> {computeProfitPercentFromStrings(price, priceSale)}
+            </div>
+            <div>
+              <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
+              <input
+                id="profit_percent"
+                type="number"
+                step="0.01"
+                value={profitPercent}
+                onChange={handleProfitPercentChange}
+                placeholder="0.00"
+                className="w-48 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
           </div>
 
           <div className="flex gap-4 pt-4 border-t border-zinc-700">
