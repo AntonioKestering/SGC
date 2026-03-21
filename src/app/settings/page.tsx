@@ -20,7 +20,9 @@ export default function SettingsPage() {
 
     async function loadSettings() {
       try {
-        const token = session.access_token;
+        const token = session?.access_token;
+        if (!token) return;
+
         const res = await fetch('/api/user-settings', {
           headers: { Authorization: `Bearer ${token}` },
         });
