@@ -1,4 +1,3 @@
-// src/app/api/specialists/route.ts
 import { createRouteClient } from '@/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -6,9 +5,18 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createRouteClient();
 
-    // Com o createRouteClient, o RLS filtrará automaticamente especialistas 
-    // que pertencem à mesma organization_id do usuário logado.
-    const { data: specialists, error: specError } = await supabase
+    // 1. Obter dados do usuário logado para verificar a ROLE
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+    const { data: currentUserProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    // 2. Construir a Query base
+    let query = supabase
       .from('specialists')
       .select(`
         id, 
@@ -16,24 +24,24 @@ export async function GET(request: NextRequest) {
         specialty, 
         registry_number, 
         color_code,
-        profiles:profile_id (
-          id,
-          full_name,
-          email
-        )
+        profiles:profile_id (id, full_name, email, role)
       `);
 
+    // REGRA DE NEGÓCIO: Se NÃO for admin, filtra para ver apenas o próprio registro
+    if (currentUserProfile?.role !== 'admin') {
+      query = query.eq('profile_id', user.id);
+    }
+
+    const { data: specialists, error: specError } = await query;
+
     if (specError) {
-      console.error('[API] Error:', specError);
       return NextResponse.json({ error: specError.message }, { status: 400 });
     }
 
-    // Formatamos o retorno para manter compatibilidade com seu frontend
     const result = (specialists || []).map((spec: any) => ({
       ...spec,
       full_name: spec.profiles?.full_name || '',
       email: spec.profiles?.email || '',
-      // Mantendo o array profiles se o seu componente esperar esse formato
       profiles: spec.profiles ? [spec.profiles] : []
     }));
 
@@ -48,27 +56,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { specialty, profile_id, registry_number, color_code } = body;
 
-    if (!specialty) {
-      return NextResponse.json({ error: 'Especialidade é obrigatória' }, { status: 400 });
-    }
-
     const supabase = await createRouteClient();
 
-    // 1. Validar usuário e obter organização
+    // 1. Validar usuário e verificar se ele é ADMIN
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('organization_id')
+      .select('organization_id, role')
       .eq('id', user.id)
       .single();
+
+    // REGRA DE SEGURANÇA: Apenas Admins podem cadastrar especialistas
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem cadastrar especialistas.' }, { status: 403 });
+    }
 
     if (!profile?.organization_id) {
       return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
     }
 
-    // 2. Inserir com organization_id para garantir o isolamento
+    // 2. Inserir o novo especialista
     const { data, error } = await supabase
       .from('specialists')
       .insert([{ 
