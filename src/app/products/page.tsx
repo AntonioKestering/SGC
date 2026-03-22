@@ -144,6 +144,7 @@ export default function ProductsPage() {
             <table className="min-w-full divide-y divide-zinc-700">
               <thead>
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Cod. Barras</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Nome</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Estoque</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Validade</th>
@@ -156,12 +157,13 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-zinc-800">
                 {products.map((p) => (
                   <tr key={p.id} className="hover:bg-zinc-800 transition-colors">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.barcode}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{p.name}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.stock_quantity ?? 0}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{computeProfitPercent(p.price, p.price_sale)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">{computeProfitPercent(p.price, p.price_sale)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
                       <button
                         onClick={() => router.push(`/products/${p.id}/edit`)}
