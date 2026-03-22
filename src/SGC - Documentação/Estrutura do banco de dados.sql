@@ -1,6 +1,6 @@
 -- 1. CRIAÇÃO DE TIPOS (ENUMS)
 -- Atualizado: 'medico' agora é 'especialista'
-CREATE TYPE user_role AS ENUM ('admin', 'especialista', 'recepcionista');
+CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'especialista', 'recepcionista');
 CREATE TYPE appointment_status AS ENUM ('agendado', 'confirmado', 'concluido', 'cancelado', 'falta');
 
 -- 2. TABELA DE PERFIS DE USUÁRIOS
@@ -182,3 +182,126 @@ CREATE TRIGGER set_timestamp
 BEFORE UPDATE ON public.user_settings
 FOR EACH ROW
 EXECUTE PROCEDURE public.trigger_set_timestamp();
+
+-- Fim da criação de tabelas do sistema
+-- Início das tabelas e definições de segurança
+-- Multi-tenancy
+
+-- 1. Criação do Tipo de Status para a Empresa
+CREATE TYPE organization_status AS ENUM ('active', 'inactive', 'trial');
+
+-- 2. Criação da Tabela de Organizações (Inquilinos)
+CREATE TABLE public.organizations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  full_name TEXT,
+  email TEXT,  
+  phone TEXT,
+  status organization_status DEFAULT 'trial',
+  owner_id UUID REFERENCES auth.users(id), -- Quem criou a conta da empresa
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+
+-- Lista de tabelas que precisam de isolamento
+DO $$ 
+DECLARE 
+    t text;
+BEGIN 
+    FOR t IN SELECT table_name 
+             FROM information_schema.tables 
+             WHERE table_schema = 'public' 
+             AND table_name IN ('profiles', 'patients', 'specialists', 'appointments', 'suppliers', 'products', 'sales', 'sales_items', 'anamnesis_form_templates', 'anamnesis_records', 'user_settings') 
+    LOOP 
+        EXECUTE format('ALTER TABLE public.%I ADD COLUMN organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE', t);
+        EXECUTE format('CREATE INDEX idx_%I_organization_id ON public.%I(organization_id)', t, t);
+    END LOOP; 
+END $$;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, organization_id)
+  VALUES (
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data->>'full_name',
+    (new.raw_user_meta_data->>'organization_id')::uuid -- Captura do meta-data no signup
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 1. Removemos a tentativa anterior se ela tiver criado algo parcial
+DROP FUNCTION IF EXISTS public.get_user_organization();
+
+-- 2. Criamos a função no schema PUBLIC
+CREATE OR REPLACE FUNCTION public.get_user_organization() 
+RETURNS uuid AS $$
+BEGIN
+  RETURN (SELECT organization_id FROM public.profiles WHERE id = auth.uid());
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- 3. Damos permissão para usuários autenticados executarem a função
+GRANT EXECUTE ON FUNCTION public.get_user_organization() TO authenticated;
+-- Cria isolamento nas tabelas
+DO $$ 
+DECLARE 
+    t text;
+    tables_to_secure text[] := ARRAY[
+        'profiles', 
+        'patients', 
+        'specialists', 
+        'appointments', 
+        'suppliers', 
+        'products', 
+        'sales', 
+        'sale_items',
+        'anamnesis_form_templates', 
+        'anamnesis_records', 
+        'user_settings'
+    ];
+BEGIN 
+    FOREACH t IN ARRAY tables_to_secure 
+    LOOP 
+        -- 1. Remove políticas anteriores para evitar conflitos
+        EXECUTE format('DROP POLICY IF EXISTS "Acesso total logado" ON public.%I', t);
+        EXECUTE format('DROP POLICY IF EXISTS "Isolamento por Organização" ON public.%I', t);
+        
+        -- 2. Cria a nova política de Multi-tenancy com suporte a Super Admin
+        -- Lógica: O usuário vê o dado se (pertencer à empresa dele) OU (se ele for super_admin)
+        EXECUTE format('
+            CREATE POLICY "Isolamento por Organização" ON public.%I
+            FOR ALL 
+            TO authenticated
+            USING (
+                organization_id = public.get_user_organization() 
+                OR 
+                (SELECT role FROM public.profiles WHERE id = auth.uid()) = ''super_admin''
+            )
+            WITH CHECK (
+                organization_id = public.get_user_organization() 
+                OR 
+                (SELECT role FROM public.profiles WHERE id = auth.uid()) = ''super_admin''
+            )', 
+            t
+        );
+    END LOOP; 
+END $$;
+
+-- Política específica para a tabela de organizações
+-- 1. Remove a política se ela já existir para evitar o erro 42710
+DROP POLICY IF EXISTS "Super Admin gerencia organizações" ON public.organizations;
+-- Apenas Super Admins podem ver/editar a tabela de empresas
+CREATE POLICY "Super Admin gerencia organizações" ON public.organizations
+FOR ALL TO authenticated
+USING (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
+);
+
+UPDATE public.profiles 
+SET role = 'super_admin' 
+WHERE email = 'contato.antoniokestering@gmail.com';
