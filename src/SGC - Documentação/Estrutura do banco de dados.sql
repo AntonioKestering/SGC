@@ -305,3 +305,73 @@ USING (
 UPDATE public.profiles 
 SET role = 'super_admin' 
 WHERE email = 'contato.antoniokestering@gmail.com';
+
+-- ///////////////////////////////////////////////////////////////////////////////////////////// VALIDAR ESTA PARTE ABAIXO
+
+DROP POLICY IF EXISTS "Isolamento por Organização" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários podem ler o próprio perfil" ON public.profiles;
+
+-- Política 1: Todo usuário autenticado pode ler SEU PRÓPRIO perfil (Baseado no ID do Auth)
+CREATE POLICY "Leitura do próprio perfil" 
+ON public.profiles 
+FOR SELECT 
+TO authenticated 
+USING (auth.uid() = id);
+
+-- Política 2: Super Admin pode fazer TUDO (Baseado na coluna role, mas sem recursão)
+-- Usamos uma subquery que o Postgres otimiza melhor ou checamos direto
+CREATE POLICY "Super Admin total no profiles" 
+ON public.profiles 
+FOR ALL 
+TO authenticated 
+USING (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
+);
+-- Nota: O Postgres as vezes ainda reclama da acima. Se reclamar, use a de baixo:
+
+-- Remove a do Super Admin se deu erro e usa esta:
+DROP POLICY IF EXISTS "Super Admin total no profiles" ON public.profiles;
+
+CREATE POLICY "Acesso perfis" 
+ON public.profiles 
+FOR ALL 
+TO authenticated 
+USING (
+  auth.uid() = id 
+  OR 
+  (SELECT (raw_user_meta_data->>'role') FROM auth.users WHERE id = auth.uid()) = 'super_admin'
+);
+
+-- Rode isso para sincronizar a role do banco com a role do Auth
+UPDATE auth.users 
+SET raw_user_meta_data = raw_user_meta_data || '{"role": "super_admin"}'::jsonb
+WHERE email = 'contato.antoniokestering@gmail.com';
+
+-- 1. Limpar políticas existentes na tabela profiles
+DROP POLICY IF EXISTS "Leitura do próprio perfil" ON public.profiles;
+DROP POLICY IF EXISTS "Acesso perfis" ON public.profiles;
+DROP POLICY IF EXISTS "Isolamento por Organização" ON public.profiles;
+
+-- 2. Criar política simples: O usuário autenticado pode ler SEU PRÓPRIO registro
+-- O filtro 'id = auth.uid()' é extremamente rápido e seguro
+CREATE POLICY "Leitura perfil proprio" 
+ON public.profiles 
+FOR SELECT 
+TO authenticated 
+USING (id = auth.uid());
+
+-- 3. Criar política separada para o Super Admin (Se ele for o dono do registro ou se for admin)
+-- Usamos uma função estável para evitar a recursão infinita
+CREATE OR REPLACE FUNCTION public.is_super_admin() 
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'super_admin'
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+CREATE POLICY "Super Admin acesso total profiles" 
+ON public.profiles 
+FOR ALL 
+TO authenticated 
+USING (public.is_super_admin());

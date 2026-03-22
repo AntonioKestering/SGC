@@ -11,6 +11,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const [userName, setUserName] = useState<string | null>(null);
 
   // Lógica de proteção
   useState(() => {
@@ -22,6 +23,29 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Checar configurações do usuário e exibir alerta de produtos vencendo
   const [expiringProducts, setExpiringProducts] = useState<any[]>([]);
   useEffect(() => {
+    async function loadProfile() {
+        if (!user) return;
+        const supabase = getSupabaseClient();
+        
+        // Como o RLS agora permite 'id = auth.uid()', esta query vai funcionar:
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Erro ao buscar perfil:', error.message);
+          return;
+        }
+
+        if (data?.full_name) {
+          setUserName(data.full_name);
+        }
+      }
+
+      loadProfile();
+
     async function checkAlerts() {
       if (loading || !user) return;
       try {
@@ -88,9 +112,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
         {/* Cabeçalho superior com botão de Logout */}
-        <header className="flex justify-between items-center pb-6 border-b border-zinc-800 mb-8">
-            <h1 className="text-3xl font-light text-zinc-100">
-                Olá, {user.email}!
+        <header className="flex justify-between items-center pb-2 border-b border-zinc-700 mb-5">
+            <h1 className="text-1xl font-light text-zinc-400 flex items-center gap-2">
+              Olá, {userName || user.email}
+              {user.user_metadata?.role === 'super_admin' && (
+                <span className="text-xs bg-pink-500/20 text-pink-500 px-2 py-1 rounded-full border border-pink-500/50 font-medium">
+                  Super Admin
+                </span>
+              )}
             </h1>
             <button 
                 onClick={signOut} 
