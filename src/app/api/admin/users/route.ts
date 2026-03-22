@@ -6,32 +6,39 @@ export async function GET() {
   try {
     const supabase = await createRouteClient();
 
-    // 1. Verifica quem é o usuário que está fazendo a requisição
+    // 1. Pega o usuário da sessão
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // 2. Buscamos os usuários DIRETO da tabela profiles.
-    // Como estamos usando o createRouteClient (ANON_KEY), 
-    // o RLS do banco de dados vai filtrar automaticamente para que 
-    // o usuário só veja os colegas da MESMA organização.
+    // 2. Opcional: Buscar o org_id do usuário atual primeiro para garantir
+    // que ele tem uma organização antes de listar
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (!myProfile?.organization_id) {
+      console.warn(`[API] Usuário ${currentUser.id} tentou listar usuários sem ter organization_id.`);
+      return NextResponse.json({ users: [] });
+    }
+
+    // 3. Busca os perfis. O .eq garante que, mesmo que o RLS falhe, 
+    // a API ainda filtre por organização.
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, email, full_name, phone, role, organization_id')
+      .eq('organization_id', myProfile.organization_id) // Filtro explícito além do RLS
       .order('full_name', { ascending: true });
 
     if (profilesError) {
-      console.error('[API] Erro ao buscar profiles:', profilesError);
       return NextResponse.json({ error: profilesError.message }, { status: 500 });
     }
 
-    // 3. Retornamos a lista já filtrada pelo banco de dados
-    console.log(`[API] ${profiles?.length} usuários encontrados para esta organização.`);
-    
     return NextResponse.json({ users: profiles || [] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/admin/users:', err);
     return NextResponse.json({ error: 'Erro interno no servidor' }, { status: 500 });
   }
 }

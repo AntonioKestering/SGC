@@ -409,32 +409,39 @@ ALTER TABLE public.anamnesis_form_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.anamnesis_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
--- Política para a tabela de Especialistas
-ALTER TABLE public.specialists ENABLE ROW LEVEL SECURITY;
-
+-- Primeiro, removemos a política que deu erro para limpar o ambiente
 DROP POLICY IF EXISTS "Permissões de Especialistas" ON public.specialists;
 
 CREATE POLICY "Permissões de Especialistas" ON public.specialists
-FOR ALL TO authenticated
+FOR ALL 
+TO authenticated
 USING (
-  -- Admin vê todos da mesma clínica
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin' 
-  AND 
-  organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid())
-)
-OR (
-  -- Especialista só vê o seu próprio registro
-  profile_id = auth.uid()
+  -- Abrimos um parêntese global para envolver toda a lógica do OR
+  (
+    -- Condição 1: É Admin da mesma organização
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+    AND 
+    organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
+  )
+  OR 
+  (
+    -- Condição 2: É o próprio especialista acessando seu registro
+    profile_id = auth.uid()
+  )
 );
 
--- Política para evitar que o especialista se delete via API direta
 DROP POLICY IF EXISTS "Delete restrito a admin" ON public.specialists;
+
 CREATE POLICY "Delete restrito a admin" ON public.specialists
-FOR DELETE TO authenticated
+FOR DELETE 
+TO authenticated
 USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+  -- Somente se for admin
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
   AND 
-  organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid())
+  -- Somente na mesma organização
+  organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
   AND
-  profile_id != auth.uid() -- Bloqueia deletar a si mesmo no banco
+  -- E NÃO pode ser o próprio perfil (ID do executor diferente do profile_id do alvo)
+  profile_id != auth.uid()
 );
