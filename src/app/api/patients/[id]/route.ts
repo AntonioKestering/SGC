@@ -1,7 +1,5 @@
-// src/app/api/patients/[id]/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET(
   request: Request,
@@ -9,28 +7,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data: patient, error } = await supabaseAdmin
+    // O RLS filtrará automaticamente. Se o paciente não for da clínica 
+    // do usuário, o single() retornará erro (objeto não encontrado).
+    const { data: patient, error } = await supabase
       .from('patients')
       .select('*')
       .eq('id', id)
       .single();
 
     if (error) {
-      console.error('[API] Erro ao buscar paciente:', error);
+      console.error('[API] Erro ao buscar paciente:', error.message);
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Paciente não encontrado ou acesso negado' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ patient });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/patients/[id]:', err);
     return NextResponse.json(
-      { error: err.message },
+      { error: 'Erro interno no servidor' },
       { status: 500 }
     );
   }
@@ -43,30 +41,31 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
+    // Remova campos sensíveis que não devem ser alterados via PUT se necessário
+    // const { id: _, organization_id: __, ...updateData } = body;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('patients')
-      .update(body)
+      .update(body) // O RLS garante que só atualize se pertencer à empresa
       .eq('id', id)
       .select();
 
     if (error) {
-      console.error('[API] Erro ao atualizar paciente:', error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
+        { error: 'Paciente não encontrado ou sem permissão para editar' },
+        { status: 403 }
       );
     }
 
-    return NextResponse.json({ patient: data?.[0] });
+    return NextResponse.json({ patient: data[0] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em PUT /api/patients/[id]:', err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro ao processar atualização' }, { status: 500 });
   }
 }
 
@@ -76,28 +75,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('patients')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('[API] Erro ao deletar paciente:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    // Nota: No DELETE com RLS, se o registro não existir ou não pertencer
+    // ao usuário, o Supabase não retorna erro, mas também não deleta nada.
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em DELETE /api/patients/[id]:', err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro ao deletar' }, { status: 500 });
   }
 }

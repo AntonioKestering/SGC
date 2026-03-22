@@ -1,7 +1,5 @@
-// src/app/api/appointments/[id]/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET(
   request: Request,
@@ -9,10 +7,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data: appointment, error } = await supabaseAdmin
+    const { data: appointment, error } = await supabase
       .from('appointments')
       .select(`
         *,
@@ -27,20 +24,16 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('[API] Erro ao buscar agendamento:', error);
+      console.error('[API] Erro ao buscar agendamento:', error.message);
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Agendamento não encontrado ou acesso negado' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ appointment });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/appointments/[id]:', err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
 
@@ -51,34 +44,39 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
+    // Removemos campos que não devem ser alterados manualmente para evitar fraude
+    const { id: _, organization_id: __, ...updateData } = body;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('appointments')
-      .update(body)
+      .update(updateData)
       .eq('id', id)
       .select(`
         *,
-        specialist:specialist_id(id, full_name, specialty),
+        specialist:specialist_id(
+          id, 
+          specialty,
+          profiles(id, full_name)
+        ),
         patient:patient_id(id, full_name, phone)
       `);
 
     if (error) {
-      console.error('[API] Erro ao atualizar agendamento:', error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
+        { error: 'Agendamento não encontrado ou sem permissão' },
+        { status: 403 }
       );
     }
 
-    return NextResponse.json({ appointment: data?.[0] });
+    return NextResponse.json({ appointment: data[0] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em PUT /api/appointments/[id]:', err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro ao atualizar' }, { status: 500 });
   }
 }
 
@@ -88,28 +86,19 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('appointments')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('[API] Erro ao deletar agendamento:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em DELETE /api/appointments/[id]:', err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro ao deletar' }, { status: 500 });
   }
 }

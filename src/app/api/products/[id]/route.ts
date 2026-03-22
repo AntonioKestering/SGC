@@ -1,7 +1,5 @@
-// src/app/api/products/[id]/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET(
   request: Request,
@@ -9,23 +7,24 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = await createRouteClient();
 
-    const { data: product, error } = await supabaseAdmin
+    // O RLS filtrará automaticamente. Se o ID for de outra empresa,
+    // o Supabase retornará erro de "não encontrado".
+    const { data: product, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
       .single();
 
     if (error) {
-      console.error('[API] Erro ao buscar produto:', error);
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      console.error('[API] Erro ao buscar produto:', error.message);
+      return NextResponse.json({ error: 'Produto não encontrado ou acesso negado' }, { status: 404 });
     }
 
     return NextResponse.json({ product });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/products/[id]:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Erro interno no servidor' }, { status: 500 });
   }
 }
 
@@ -36,10 +35,11 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const supabase = await createRouteClient();
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data, error } = await supabaseAdmin
+    // O update com createRouteClient só afetará a linha se o RLS permitir
+    // (ou seja, se o organization_id do produto bater com o do usuário).
+    const { data, error } = await supabase
       .from('products')
       .update({
         supplier_id: body.supplier_id || null,
@@ -55,14 +55,17 @@ export async function PUT(
       .select();
 
     if (error) {
-      console.error('[API] Erro ao atualizar produto:', error);
+      console.error('[API] Erro ao atualizar produto:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ product: data?.[0] });
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Produto não encontrado ou sem permissão' }, { status: 403 });
+    }
+
+    return NextResponse.json({ product: data[0] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em PUT /api/products/[id]:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao processar atualização' }, { status: 500 });
   }
 }
 
@@ -72,21 +75,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = await createRouteClient();
 
-    const { error } = await supabaseAdmin
+    // O delete só será executado se o RLS validar a posse do registro.
+    const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('[API] Erro ao deletar produto:', error);
+      console.error('[API] Erro ao deletar produto:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em DELETE /api/products/[id]:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao deletar' }, { status: 500 });
   }
 }

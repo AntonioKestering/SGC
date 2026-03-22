@@ -10,9 +10,9 @@ import { Users, Calendar, Syringe, Package, DollarSign, Home, Menu, X, UserCog }
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, group: 'Principal' },
   // CADASTROS
-  { name: 'Pacientes', href: '/patients', icon: Users, group: 'Cadastros' },
-  { name: 'Especialistas', href: '/specialists', icon: UserCog, group: 'Cadastros' },
   { name: 'Usuários', href: '/users', icon: UserCog, group: 'Cadastros' },
+  { name: 'Especialistas', href: '/specialists', icon: UserCog, group: 'Cadastros' },
+  { name: 'Pacientes', href: '/patients', icon: Users, group: 'Cadastros' },
   // GESTÃO OPERACIONAL
   { name: 'Agenda', href: '/appointments', icon: Calendar, group: 'Gestão' },
   { name: 'Produtos/Estoque', href: '/products', icon: Package, group: 'Gestão' },

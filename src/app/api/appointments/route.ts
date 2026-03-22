@@ -1,7 +1,6 @@
 // src/app/api/appointments/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET(request: Request) {
   try {
@@ -9,10 +8,11 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    console.log('[API] GET /api/appointments - startDate:', startDate, 'endDate:', endDate);
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = await createRouteClient();
 
-    let query = supabaseAdmin
+    // O cliente criado com 'createRouteClient' injeta o token do usuário logado.
+    // O Postgres filtrará automaticamente com base no RLS.
+    let query = supabase
       .from('appointments')
       .select(`
         *,
@@ -35,21 +35,13 @@ export async function GET(request: Request) {
       .order('start_time', { ascending: true });
 
     if (error) {
-      console.error('[API] Erro ao buscar agendamentos:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      console.error('[API] Erro ao buscar agendamentos:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('[API] Agendamentos carregados:', appointments?.length || 0);
     return NextResponse.json({ appointments: appointments || [] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/appointments:', err);
-    return NextResponse.json(
-      { error: err.message || 'Erro ao buscar agendamentos' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
 
@@ -58,16 +50,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { specialist_id, patient_id, start_time, end_time, status, notes } = body;
 
-    if (!specialist_id || !patient_id || !start_time || !end_time) {
-      return NextResponse.json(
-        { error: 'Campos obrigatórios faltando' },
-        { status: 400 }
-      );
+    const supabase = await createRouteClient();
+
+    // 1. Validar usuário e obter organização
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data, error } = await supabaseAdmin
+    // 2. Inserir agendamento com o organization_id forçado
+    const { data, error } = await supabase
       .from('appointments')
       .insert([
         {
@@ -77,6 +77,7 @@ export async function POST(request: Request) {
           end_time,
           status: status || 'agendado',
           notes: notes || null,
+          organization_id: profile.organization_id // Garante o isolamento no insert
         },
       ])
       .select(`
@@ -91,22 +92,12 @@ export async function POST(request: Request) {
       `);
 
     if (error) {
-      console.error('[API] Erro ao criar agendamento:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      console.error('[API] Erro ao criar agendamento:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { appointment: data?.[0] },
-      { status: 201 }
-    );
+    return NextResponse.json({ appointment: data?.[0] }, { status: 201 });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em POST /api/appointments:', err);
-    return NextResponse.json(
-      { error: err.message || 'Erro ao criar agendamento' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro inesperado' }, { status: 500 });
   }
 }

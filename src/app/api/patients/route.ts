@@ -1,81 +1,47 @@
-// src/app/api/patients/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET() {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    console.log('[API] GET /api/patients iniciado');
-
-    const { data: patients, error } = await supabaseAdmin
+    const supabase = await createRouteClient();
+    const { data: patients, error } = await supabase
       .from('patients')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('[API] Erro ao buscar pacientes:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    console.log('[API] Pacientes carregados com sucesso:', patients?.length || 0);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ patients: patients || [] });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em GET /api/patients:', err);
-    return NextResponse.json(
-      { error: err.message || 'Erro ao buscar pacientes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { full_name, cpf, phone, birth_date, medical_history } = body;
+    const supabase = await createRouteClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-    if (!full_name) {
-      return NextResponse.json(
-        { error: 'Nome do paciente é obrigatório' },
-        { status: 400 }
-      );
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
-
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('patients')
-      .insert([
-        {
-          full_name,
-          cpf: cpf || null,
-          phone: phone || null,
-          birth_date: birth_date || null,
-          medical_history: medical_history || null,
-        },
-      ])
+      .insert([{ ...body, organization_id: profile.organization_id }])
       .select();
 
-    if (error) {
-      console.error('[API] Erro ao criar paciente:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { patient: data?.[0] },
-      { status: 201 }
-    );
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ patient: data?.[0] }, { status: 201 });
   } catch (err: any) {
-    console.error('[API] Erro inesperado em POST /api/patients:', err);
-    return NextResponse.json(
-      { error: err.message || 'Erro ao criar paciente' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro no servidor' }, { status: 500 });
   }
 }

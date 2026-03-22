@@ -1,53 +1,37 @@
 // src/app/api/admin/users/route.ts
-
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET() {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    console.log('[API] GET /api/admin/users iniciado');
-    console.log('[API] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('[API] SUPABASE_SERVICE_ROLE_KEY definida:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Busca usuários do Auth
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (error) {
-      console.error('[API] Erro em listUsers admin:', error);
-      return NextResponse.json({ error: error.message || JSON.stringify(error) }, { status: 500 });
+    const supabase = await createRouteClient();
+
+    // 1. Verifica quem é o usuário que está fazendo a requisição
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
-    
-    const authUsers = data?.users || [];
-    console.log('[API] Usuários do Auth carregados:', authUsers.length);
-    
-    // Busca dados complementares da tabela profiles
-    const { data: profilesData, error: profilesError } = await supabaseAdmin
+
+    // 2. Buscamos os usuários DIRETO da tabela profiles.
+    // Como estamos usando o createRouteClient (ANON_KEY), 
+    // o RLS do banco de dados vai filtrar automaticamente para que 
+    // o usuário só veja os colegas da MESMA organização.
+    const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, phone, role');
-    
+      .select('id, email, full_name, phone, role, organization_id')
+      .order('full_name', { ascending: true });
+
     if (profilesError) {
       console.error('[API] Erro ao buscar profiles:', profilesError);
+      return NextResponse.json({ error: profilesError.message }, { status: 500 });
     }
+
+    // 3. Retornamos a lista já filtrada pelo banco de dados
+    console.log(`[API] ${profiles?.length} usuários encontrados para esta organização.`);
     
-    // Combina dados dos usuários Auth com os profiles
-    const profiles = profilesData || [];
-    const usersWithProfiles = authUsers.map((authUser: any) => {
-      const profile = profiles.find((p: any) => p.id === authUser.id);
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        full_name: profile?.full_name || authUser.user_metadata?.full_name || 'N/A',
-        phone: profile?.phone || '',
-        role: profile?.role || 'N/A',
-      };
-    });
-    
-    console.log('[API] Usuários com profiles carregados com sucesso:', usersWithProfiles.length);
-    return NextResponse.json({ users: usersWithProfiles });
+    return NextResponse.json({ users: profiles || [] });
   } catch (err: any) {
     console.error('[API] Erro inesperado em GET /api/admin/users:', err);
-    const errorMessage = err.message || JSON.stringify(err);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Erro interno no servidor' }, { status: 500 });
   }
 }

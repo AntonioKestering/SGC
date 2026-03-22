@@ -213,7 +213,7 @@ BEGIN
     FOR t IN SELECT table_name 
              FROM information_schema.tables 
              WHERE table_schema = 'public' 
-             AND table_name IN ('profiles', 'patients', 'specialists', 'appointments', 'suppliers', 'products', 'sales', 'sales_items', 'anamnesis_form_templates', 'anamnesis_records', 'user_settings') 
+             AND table_name IN ('profiles', 'patients', 'specialists', 'appointments', 'suppliers', 'products', 'sales', 'sale_items', 'anamnesis_form_templates', 'anamnesis_records', 'user_settings') 
     LOOP 
         EXECUTE format('ALTER TABLE public.%I ADD COLUMN organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE', t);
         EXECUTE format('CREATE INDEX idx_%I_organization_id ON public.%I(organization_id)', t, t);
@@ -375,3 +375,36 @@ ON public.profiles
 FOR ALL 
 TO authenticated 
 USING (public.is_super_admin());
+
+-- Função que será disparada pelo gatilho para tribuir a role ao usuário
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, role, organization_id)
+  VALUES (
+    new.id, 
+    new.raw_user_meta_data->>'full_name', 
+    'especialista', -- Define a role padrão como 'especialista'
+    NULL    -- O organization_id começa nulo até ele ser convidado ou criar uma empresa
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql security definer;
+
+-- O Gatilho (Trigger)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+  
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.specialists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sale_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.anamnesis_form_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.anamnesis_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;

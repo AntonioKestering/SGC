@@ -1,71 +1,58 @@
 // src/app/api/migrations/add-phone-column/route.ts
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createRouteClient } from '@/lib/supabaseServer';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST() {
   try {
-    console.log('[Migration] Iniciando migração: adicionar coluna phone');
+    // 1. SEGURANÇA: Verificar se o usuário logado é SUPER_ADMIN
+    const supabase = await createRouteClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({
-        error: 'Variáveis de ambiente não configuradas',
-        manual_sql: 'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT \'\';'
-      }, { status: 500 });
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Acesso restrito a Super Admins' }, { status: 403 });
     }
 
-    // Cria cliente com permissões de admin
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    console.log('[Migration] Super Admin autenticado. Verificando coluna phone...');
 
-    // Tenta executar a migração via RPC se existir, caso contrário via SQL direto
-    // Nota: Supabase não permite SQL direto via cliente JS, precisa ser via RPC ou pg_net
-    // Então vamos usar a abordagem de tentar uma operação que falharia se a coluna não existisse
+    // 2. AÇÃO: Usar o Admin apenas para a verificação técnica
+    const supabaseAdmin = getSupabaseAdmin();
 
-    // Primeiro, tentamos selecionar a coluna phone
-    const { data: checkData, error: checkError } = await supabase
+    const { error: checkError } = await supabaseAdmin
       .from('profiles')
       .select('phone')
       .limit(1);
 
+    // Erro 42703 significa "column does not exist" no Postgres
     if (checkError?.code === '42703') {
-      // Coluna não existe, precisamos criá-la
-      // Como Supabase não permite ALTER TABLE via cliente JS, retornamos instruções
-      console.log('[Migration] Coluna phone não existe. Instruções para criá-la retornadas.');
       return NextResponse.json({
         status: 'column_missing',
-        message: 'Coluna phone não existe na tabela profiles',
-        manual_sql: 'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT \'\';',
-        instructions: 'Execute o SQL acima no Supabase SQL Editor (Database > SQL Editor)'
+        message: 'A coluna "phone" não existe na tabela profiles.',
+        manual_sql: "ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';",
+        instructions: 'Execute o SQL acima no SQL Editor do Supabase.'
       }, { status: 400 });
     }
 
-    if (checkError && checkError.code !== '42703') {
-      console.error('[Migration] Erro ao verificar coluna:', checkError);
-      return NextResponse.json({
-        error: checkError.message,
-        manual_sql: 'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT \'\';'
-      }, { status: 500 });
+    if (checkError) {
+      return NextResponse.json({ error: checkError.message }, { status: 500 });
     }
 
-    // Se chegou aqui, a coluna existe
-    console.log('[Migration] Coluna phone já existe na tabela profiles');
     return NextResponse.json({
       status: 'success',
-      message: 'Coluna phone já existe na tabela profiles'
+      message: 'A coluna "phone" já está presente no banco de dados.'
     });
+
   } catch (err: any) {
-    console.error('[Migration] Erro inesperado:', err);
-    return NextResponse.json({
-      error: err.message || 'Erro ao executar migração',
-      manual_sql: 'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT \'\';'
-    }, { status: 500 });
+    console.error('[Migration] Erro:', err);
+    return NextResponse.json({ error: 'Erro interno na migração' }, { status: 500 });
   }
 }
