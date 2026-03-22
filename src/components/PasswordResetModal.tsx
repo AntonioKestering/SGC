@@ -25,7 +25,8 @@ export function PasswordResetModal({ isOpen, onClose }: PasswordResetModalProps)
     setLoading(true);
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      // Garantimos que a URL seja limpa e aponte para a rota de reset
+      redirectTo: `${window.location.origin.replace(/\/$/, '')}/auth/reset-password`,
     });
 
     if (resetError) {

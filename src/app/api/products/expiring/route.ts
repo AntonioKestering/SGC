@@ -31,8 +31,8 @@ export async function GET(request: Request) {
     const { data: products, error } = await supabaseAdmin
       .from('products')
       .select('id, barcode, name, expiry_date, stock_quantity')
-      .lt('expiry_date', end.toISOString())
-      .gt('expiry_date', today.toISOString())
+      // Removemos o .gt() para incluir os já vencidos (datas no passado)
+      .lt('expiry_date', end.toISOString()) 
       .order('expiry_date', { ascending: true });
 
     if (error) {
