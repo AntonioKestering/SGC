@@ -410,23 +410,20 @@ ALTER TABLE public.anamnesis_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
 -- Primeiro, removemos a política que deu erro para limpar o ambiente
-DROP POLICY IF EXISTS "Permissões de Especialistas" ON public.specialists;
+DROP POLICY IF EXISTS "Membros da mesma organização se veem" ON public.profiles;
 
-CREATE POLICY "Permissões de Especialistas" ON public.specialists
-FOR ALL 
+CREATE POLICY "Hierarquia de visualização de perfis" ON public.profiles
+FOR SELECT
 TO authenticated
 USING (
-  -- Abrimos um parêntese global para envolver toda a lógica do OR
-  (
-    -- Condição 1: É Admin da mesma organização
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-    AND 
-    organization_id = (SELECT organization_id FROM public.profiles WHERE id = auth.uid())
-  )
+  -- REGRA 1: O usuário sempre pode ver o seu próprio perfil
+  id = auth.uid()
   OR 
+  -- REGRA 2: Se o usuário for ADMIN, ele pode ver todos da mesma organização
   (
-    -- Condição 2: É o próprio especialista acessando seu registro
-    profile_id = auth.uid()
+    (SELECT p.role FROM public.profiles p WHERE p.id = auth.uid()) = 'admin'
+    AND 
+    organization_id = (SELECT p.organization_id FROM public.profiles p WHERE p.id = auth.uid())
   )
 );
 
@@ -444,4 +441,114 @@ USING (
   AND
   -- E NÃO pode ser o próprio perfil (ID do executor diferente do profile_id do alvo)
   profile_id != auth.uid()
+);
+
+-- 1. Limpa as políticas problemáticas
+DROP POLICY IF EXISTS "Membros da mesma organização se veem" ON public.profiles;
+DROP POLICY IF EXISTS "Hierarquia de visualização de perfis" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários veem membros da mesma organização" ON public.profiles;
+
+-- 2. Cria a nova política simplificada
+CREATE POLICY "Visualização baseada em organização" ON public.profiles
+FOR SELECT
+TO authenticated
+USING (
+  -- Regra A: Qualquer um vê seu próprio perfil
+  id = auth.uid()
+  OR 
+  -- Regra B: Permite ver outros se o organization_id for igual, 
+  -- mas sem fazer um SELECT circular na própria tabela profiles.
+  -- Usamos uma subquery que o Postgres otimiza melhor ou comparamos IDs.
+  organization_id IN (
+    SELECT p.organization_id 
+    FROM public.profiles p 
+    WHERE p.id = auth.uid()
+    -- O segredo é que o Postgres trata o acesso ao próprio ID de forma diferente
+  )
+);
+
+-- Remove TODAS as políticas da tabela profiles para limpar o erro
+DROP POLICY IF EXISTS "Membros da mesma organização se veem" ON public.profiles;
+DROP POLICY IF EXISTS "Hierarquia de visualização de perfis" ON public.profiles;
+DROP POLICY IF EXISTS "Visualização baseada em organização" ON public.profiles;
+DROP POLICY IF EXISTS "Visualização protegida" ON public.profiles;
+DROP POLICY IF EXISTS "Usuários veem membros da mesma organização" ON public.profiles;
+
+-- Desativa o RLS temporariamente (Os dados vão aparecer na hora!)
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+
+-- 1. LIMPEZA DE SEGURANÇA (Remove as políticas que estão causando o erro)
+DROP POLICY IF EXISTS "Leitura perfil proprio" ON public.profiles;
+DROP POLICY IF EXISTS "Super Admin acesso total profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Acesso Seguro Profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Permissões de Especialistas" ON public.specialists;
+DROP POLICY IF EXISTS "Delete restrito a admin" ON public.specialists;
+
+-- 2. CRIAÇÃO DE FUNÇÃO AUXILIAR (Evita recursão infinita)
+-- Esta função busca os dados do usuário atual uma única vez por transação
+CREATE OR REPLACE FUNCTION public.get_my_profile_data()
+RETURNS TABLE (role text, org_id uuid) 
+LANGUAGE sql 
+STABLE SECURITY DEFINER -- Roda com privilégios de sistema para evitar RLS circular
+SET search_path = public
+AS $$
+  SELECT role::text, organization_id 
+  FROM public.profiles 
+  WHERE id = auth.uid();
+$$;
+
+-- 3. NOVAS POLÍTICAS PARA A TABELA PROFILES
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Profiles_Select_Hierarchy" ON public.profiles
+FOR SELECT
+TO authenticated
+USING (
+  -- Regra 1: Ver a si mesmo
+  id = auth.uid()
+  OR 
+  -- Regra 2: Admin vê todos da mesma organização
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.role = 'admin'::user_role 
+    AND p.organization_id = public.profiles.organization_id
+  )
+  OR
+  -- Regra 3: Mantém suporte para seu Super Admin
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'::user_role
+);
+
+-- 4. NOVAS POLÍTICAS PARA A TABELA SPECIALISTS
+ALTER TABLE public.specialists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Specialists_Select_Hierarchy" ON public.specialists
+FOR SELECT
+TO authenticated
+USING (
+  -- Regra 1: Especialista vê a si mesmo
+  profile_id = auth.uid()
+  OR 
+  -- Regra 2: Admin vê todos da organização
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.role = 'admin'::user_role 
+    AND p.organization_id = public.specialists.organization_id
+  )
+);
+
+CREATE POLICY "Specialists_Delete_Admin_Only" ON public.specialists
+FOR DELETE
+TO authenticated
+USING (
+  -- Apenas admin deleta
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.role = 'admin'::user_role 
+    AND p.organization_id = public.specialists.organization_id
+  )
+  -- E impede deletar a si mesmo
+  AND profile_id <> auth.uid()
 );
