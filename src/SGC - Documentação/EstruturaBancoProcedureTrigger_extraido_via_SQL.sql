@@ -1,3 +1,49 @@
+/*
+  Este arquivo contém a estrutura do banco de dados, incluindo tabelas, funções, gatilhos e políticas de segurança.
+  Ele foi extraído via SQL para documentar a estrutura do banco de dados do projeto SGC.
+  As tabelas representam as entidades principais do sistema, enquanto as funções e gatilhos implementam a lógica de negócios e garantem a integridade dos dados.
+  As políticas de segurança garantem o isolamento por organização e definem os níveis de acesso para os usuários autenticados.
+*/
+
+/*
+1. Extraindo as Policies (RLS) prontas para reuso
+Este comando vai gerar o script CREATE POLICY prontinho. Copie o resultado da coluna comando_sql.
+
+SELECT 
+    'CREATE POLICY "' || policyname || '" ON "' || tablename || 
+    '" FOR ' || cmd || ' TO ' || (roles[1])::text || 
+    ' USING (' || qual || ')' || 
+    CASE WHEN with_check IS NOT NULL THEN ' WITH CHECK (' || with_check || ');' ELSE ';' END AS comando_sql
+FROM pg_policies
+WHERE schemaname = 'public';
+
+2. Extraindo Triggers (Gatilhos)
+O Postgres tem uma função que reconstrói o comando de criação para você:
+
+SELECT pg_get_triggerdef(oid) || ';' AS comando_sql
+FROM pg_trigger
+WHERE tgisinternal = false;
+
+3. Extraindo Functions e Procedures (A lógica)
+Para pegar o código completo de criação (incluindo argumentos e retornos):
+
+SELECT pg_get_functiondef(p.oid) || ';' AS comando_sql
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public';
+
+4. Extraindo as Tabelas (Estrutura)
+Para não ter que montar na mão, use esta query que gera o CREATE TABLE básico:
+
+SELECT 
+  'CREATE TABLE ' || table_name || ' (' || 
+  string_agg(column_name || ' ' || data_type || 
+  (CASE WHEN is_nullable = 'NO' THEN ' NOT NULL' ELSE '' END), ', ' ORDER BY ordinal_position) || 
+  ');' AS comando_sql
+FROM information_schema.columns
+WHERE table_schema = 'public'
+GROUP BY table_name;
+*/
 
 --Create Table:
 CREATE TABLE anamnesis_form_templates (id uuid NOT NULL, name text NOT NULL, version integer NOT NULL, fields jsonb, created_at timestamp with time zone NOT NULL, organization_id uuid);
