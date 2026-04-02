@@ -57,7 +57,10 @@ CREATE TABLE sale_items (id uuid NOT NULL, sale_id uuid NOT NULL, product_id uui
 CREATE TABLE sales (id uuid NOT NULL, patient_id uuid, total_amount numeric NOT NULL, sale_date timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE specialists (id uuid NOT NULL, profile_id uuid NOT NULL, specialty text NOT NULL, registry_number text, color_code text, created_at timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE suppliers (id uuid NOT NULL, company_name text NOT NULL, cnpj text, contact_name text, phone text, created_at timestamp with time zone NOT NULL, organization_id uuid);
-CREATE TABLE user_settings (id uuid NOT NULL, user_id uuid NOT NULL, notify_expiry boolean, notify_days_before integer, created_at timestamp with time zone NOT NULL, updated_at timestamp with time zone NOT NULL, organization_id uuid);
+CREATE TABLE user_settings (id uuid NOT NULL, user_id uuid NOT NULL, notify_expiry boolean, notify_days_before integer, created_at timestamp with time zone NOT NULL, updated_at timestamp with time zone NOT NULL, last_expiry_alert_dismissed timestamp with time zone DEFAULT NULL, organization_id uuid);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_last_alert_dismissed 
+ON public.user_settings(last_expiry_alert_dismissed);
 
 --Create Function (routines)
 comando_sql

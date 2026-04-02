@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { useState, useEffect } from 'react';
 import { getSupabaseClient } from '@/lib/supabaseClient';
+import { ExpiringProductsAlert } from '@/components/ExpiringProductsAlert';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
@@ -22,6 +23,52 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   // Checar configurações do usuário e exibir alerta de produtos vencendo
   const [expiringProducts, setExpiringProducts] = useState<any[]>([]);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+
+  useEffect(() => {
+    // Verifica se o alerta foi descartado (cookie local)
+    const isDismissed = document.cookie.includes('dismissed_expiry_alert=true');
+    if (isDismissed) {
+      setAlertDismissed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Se não foi descartado no cookie, verifica no banco (sincroniza entre abas/dispositivos)
+    async function checkDismissStatus() {
+      if (alertDismissed || loading || !user) return;
+      try {
+        const supabase = getSupabaseClient();
+        const sres = await supabase.auth.getSession();
+        const token = sres.data.session?.access_token;
+        if (!token) return;
+
+        const confRes = await fetch('/api/user-settings', { headers: { Authorization: `Bearer ${token}` } });
+        if (!confRes.ok) return;
+        const confJson = await confRes.json();
+        const settings = confJson.settings;
+
+        if (settings?.last_expiry_alert_dismissed) {
+          const lastDismissed = new Date(settings.last_expiry_alert_dismissed);
+          const now = new Date();
+          const diffHours = (now.getTime() - lastDismissed.getTime()) / (1000 * 60 * 60);
+          
+          // Se foi descartado há menos de 24h, marca como descartado
+          if (diffHours < 24) {
+            // Define o cookie para sincronizar com outras abas
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.cookie = `dismissed_expiry_alert=true; expires=${tomorrow.toUTCString()}; path=/`;
+            setAlertDismissed(true);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar status do dismiss:', err);
+      }
+    }
+
+    checkDismissStatus();
+  }, [alertDismissed, loading, user]);
   useEffect(() => {
     async function loadProfile() {
         if (!user) return;
@@ -98,18 +145,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* 2. CONTEÚDO PRINCIPAL (Scrollável) */}
       <main className="flex-1 overflow-y-auto p-8 lg:p-10">
-        {/* Banner de alerta para produtos vencendo */}
-        {expiringProducts.length > 0 && (
-          <div className="mb-6 p-4 rounded-lg bg-yellow-900 border border-yellow-700 text-yellow-100">
-            <strong>Atenção — produtos próximos do vencimento:</strong>
-            <ul className="mt-2 list-disc list-inside text-sm">
-              {expiringProducts.map((p) => (
-                <li key={p.id}>
-                  {p.barcode || p.id} - {p.name} - {new Date(p.expiry_date).toLocaleDateString('pt-BR')} - Estoque: {p.stock_quantity}
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Componente de alerta para produtos vencendo com dismiss */}
+        {!alertDismissed && (
+          <ExpiringProductsAlert
+            products={expiringProducts}
+            onDismiss={() => setAlertDismissed(true)}
+          />
         )}
         {/* Cabeçalho superior com botão de Logout */}
         <header className="flex justify-between items-center pb-2 border-b border-zinc-700 mb-5">
