@@ -15,6 +15,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 2.5 Valida que o usuário pertence a uma organização
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização vinculada' }, { status: 403 });
+    }
+
     // 3. Busca as settings do usuário para verificar último dismiss
     const { data: settings, error: fetchError } = await supabase
       .from('user_settings')
@@ -44,7 +55,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Atualiza o timestamp no banco de dados
+    // 5. Atualiza o timestamp no banco de dados (RLS garante que seja do usuário)
     const now = new Date().toISOString();
     const { error } = await supabase
       .from('user_settings')

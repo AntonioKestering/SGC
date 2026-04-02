@@ -23,10 +23,13 @@ export async function GET(request: Request) {
 
     // 4. Executa a query
     // Graças ao RLS, o banco só retornará os produtos da organização do usuário logado
+    // Filtro: Produtos com data de vencimento entre hoje e +N dias (não passados, não futuros além de N dias)
+    const today = new Date().toISOString().split('T')[0];
     const { data: products, error } = await supabase
       .from('products')
       .select('id, barcode, name, expiry_date, stock_quantity')
-      .lt('expiry_date', end.toISOString().split('T')[0]) // Usamos apenas a parte YYYY-MM-DD
+      .gte('expiry_date', today) // Maior ou igual a hoje
+      .lte('expiry_date', end.toISOString().split('T')[0]) // Menor ou igual a fim do período
       .order('expiry_date', { ascending: true });
 
     if (error) {
