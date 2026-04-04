@@ -4,9 +4,26 @@ import { createRouteClient } from '@/lib/supabaseServer';
 export async function GET() {
   try {
     const supabase = await createRouteClient();
+
+    // Obter usuário logado e sua organização (FILTRO DE SEGURANÇA CRÍTICO)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
+    }
+
+    // Força filtro por organization_id (SEGURANÇA APLICAÇÃO + RLS)
     const { data: patients, error } = await supabase
       .from('patients')
       .select('*')
+      .eq('organization_id', profile.organization_id)
       .order('created_at', { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

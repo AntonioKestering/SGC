@@ -11,11 +11,15 @@ export async function GET(request: NextRequest) {
 
     const { data: currentUserProfile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, organization_id')
       .eq('id', user.id)
       .single();
 
-    // 2. Construir a Query base
+    if (!currentUserProfile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
+    }
+
+    // 2. Construir a Query base com DOIS filtros de segurança
     let query = supabase
       .from('specialists')
       .select(`
@@ -25,11 +29,12 @@ export async function GET(request: NextRequest) {
         registry_number, 
         color_code,
         profiles:profile_id (id, full_name, email, role)
-      `);
+      `)
+      .eq('organization_id', currentUserProfile.organization_id); // FILTRO 1: Força organization_id
 
     // REGRA DE NEGÓCIO: Se NÃO for admin, filtra para ver apenas o próprio registro
     if (currentUserProfile?.role !== 'admin') {
-      query = query.eq('profile_id', user.id);
+      query = query.eq('profile_id', user.id); // FILTRO 2: role-based filtering
     }
 
     const { data: specialists, error: specError } = await query;

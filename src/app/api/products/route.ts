@@ -4,12 +4,27 @@ import { createRouteClient } from '@/lib/supabaseServer';
 
 export async function GET() {
   try {
-    // Usamos o createRouteClient para respeitar os Cookies e o RLS
     const supabase = await createRouteClient();
 
+    // Obter usuário logado e sua organização (FILTRO DE SEGURANÇA CRÍTICO)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.organization_id) {
+      return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
+    }
+
+    // Força filtro por organization_id (SEGURANÇA APLICAÇÃO + RLS)
     const { data: products, error } = await supabase
       .from('products')
       .select('*')
+      .eq('organization_id', profile.organization_id)
       .order('created_at', { ascending: false });
 
     if (error) {
