@@ -1,14 +1,19 @@
 // src/components/Layout/Sidebar.tsx
 
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 // Importação de ícones (você precisará instalar uma biblioteca de ícones)
 // Sugestão: npm install lucide-react
-import { useState } from 'react';
-import { Users, Calendar, Syringe, Package, DollarSign, Home, Menu, X, UserCog } from 'lucide-react'; 
+import { useState, useEffect } from 'react';
+import { Users, Calendar, Syringe, Package, DollarSign, Home, Menu, X, UserCog, Building2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext'; 
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, group: 'Principal' },
+  // ADMIN
+  { name: 'Organizações', href: '/admin/organizations', icon: Building2, group: 'Admin', requiredRole: 'super_admin' },
   // CADASTROS
   { name: 'Usuários', href: '/users', icon: UserCog, group: 'Cadastros' },
   { name: 'Especialistas', href: '/specialists', icon: UserCog, group: 'Cadastros' },
@@ -23,9 +28,14 @@ const navigation = [
 ];
 
 // Componente do Link da Sidebar (Define o estilo ativo)
-const NavLink = ({ item }: { item: typeof navigation[0] }) => {
+const NavLink = ({ item, userRole }: { item: typeof navigation[0]; userRole: string | null }) => {
   const pathname = usePathname();
   const isActive = pathname === item.href;
+
+  // Se o item requer um role específico, verifica se o usuário tem
+  if (item.requiredRole && userRole !== item.requiredRole) {
+    return null;
+  }
   
   const baseClasses = 'flex items-center px-4 py-2 rounded-lg transition-colors';
   
@@ -48,6 +58,26 @@ const NavLink = ({ item }: { item: typeof navigation[0] }) => {
 export function Sidebar() {
   // Estado para menu mobile (opcional)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Carregar role do usuário
+  useEffect(() => {
+    async function loadUserRole() {
+      if (!user) return;
+      try {
+        const res = await fetch('/api/admin/users');
+        if (res.ok) {
+          const data = await res.json();
+          const currentUser = data.users?.find((u: any) => u.id === user.id);
+          setUserRole(currentUser?.role || null);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar role:', err);
+      }
+    }
+    loadUserRole();
+  }, [user]);
 
   // Agrupando os itens para melhor UX
   const groupedNavigation = navigation.reduce((acc, item) => {
@@ -73,7 +103,7 @@ export function Sidebar() {
             </h3>
             <div className="space-y-1">
               {items.map((item) => (
-                <NavLink key={item.name} item={item} />
+                <NavLink key={item.name} item={item} userRole={userRole} />
               ))}
             </div>
           </div>
