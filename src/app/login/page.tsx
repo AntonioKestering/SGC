@@ -79,7 +79,39 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. REDIRECIONA EM CASO DE SUCESSO
+    // 2. Verificar quantas organizações o usuário tem
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const token = session.access_token;
+        const orgResponse = await fetch('/api/user/organizations', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (orgResponse.ok) {
+          const orgData = await orgResponse.json();
+          const orgs = orgData.organizations || [];
+
+          // Se tem mais de 1 organização, redireciona para seleção
+          if (orgs.length > 1) {
+            router.push('/organization-select');
+            return;
+          }
+          
+          // Se tem 1 organização, salva no localStorage e vai para dashboard
+          if (orgs.length === 1) {
+            localStorage.setItem('selected_organization_id', orgs[0].id);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao verificar organizações:', err);
+      // Continue mesmo se houver erro
+    }
+
+    // 3. REDIRECIONA PARA O DASHBOARD
     router.push('/dashboard');
   };
 
