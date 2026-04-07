@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 // Importação de ícones (você precisará instalar uma biblioteca de ícones)
 // Sugestão: npm install lucide-react
 import { useState, useEffect } from 'react';
-import { Users, Calendar, Syringe, Package, DollarSign, Home, Menu, X, UserCog, Building2 } from 'lucide-react';
+import { Users, Calendar, Truck, Package, DollarSign, Home, Menu, X, UserCog, Building2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'; 
 
 const navigation = [
@@ -18,10 +18,10 @@ const navigation = [
   { name: 'Usuários', href: '/users', icon: UserCog, group: 'Cadastros' },
   { name: 'Especialistas', href: '/specialists', icon: UserCog, group: 'Cadastros' },
   { name: 'Pacientes', href: '/patients', icon: Users, group: 'Cadastros' },
+  { name: 'Fornecedores', href: '/suppliers', icon: Truck, group: 'Cadastros' },
   // GESTÃO OPERACIONAL
   { name: 'Agenda', href: '/appointments', icon: Calendar, group: 'Gestão' },
   { name: 'Produtos/Estoque', href: '/products', icon: Package, group: 'Gestão' },
-  { name: 'Fornecedores', href: '/suppliers', icon: Syringe, group: 'Cadastros' },
   // FINANCEIRO
   { name: 'Vendas', href: '/sales', icon: DollarSign, group: 'Financeiro' },
   // Você pode adicionar: { name: 'Relatórios', href: '/reports', icon: BarChart, group: 'Financeiro' },
