@@ -53,11 +53,15 @@ CREATE TABLE organizations (id uuid NOT NULL, name text NOT NULL, full_name text
 CREATE TABLE patients (id uuid NOT NULL, full_name text NOT NULL, cpf text, phone text, birth_date date, medical_history text, created_at timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE products (id uuid NOT NULL, supplier_id uuid, name text NOT NULL, description text, barcode text, stock_quantity integer, expiry_date date, price numeric, created_at timestamp with time zone NOT NULL, price_sale numeric, organization_id uuid);
 CREATE TABLE profiles (id uuid NOT NULL, email text, full_name text, role USER-DEFINED, created_at timestamp with time zone NOT NULL, phone text, organization_id uuid);
-CREATE TABLE sale_items (id uuid NOT NULL, sale_id uuid NOT NULL, product_id uuid NOT NULL, quantity integer NOT NULL, unit_price numeric NOT NULL, organization_id uuid);
-CREATE TABLE sales (id uuid NOT NULL, patient_id uuid, total_amount numeric NOT NULL, sale_date timestamp with time zone NOT NULL, organization_id uuid);
+CREATE TABLE sale_items (id uuid NOT NULL, sale_id uuid NOT NULL, product_id uuid NOT NULL, quantity integer NOT NULL, unit_price numeric NOT NULL, organization_id uuid, discount_amount numeric, cost_price numeric, total_price numeric NOT NULL, sku character varying, tax_percent numeric);
+CREATE TABLE sales (id uuid NOT NULL, patient_id uuid, total_amount numeric NOT NULL, sale_date timestamp with time zone NOT NULL, organization_id uuid, status integer, subtotal numeric NOT NULL, discount_amount numeric, tax_amount numeric, payment_method integer, notes text, created_by uuid, updated_at timestamp with time zone);
 CREATE TABLE specialists (id uuid NOT NULL, profile_id uuid NOT NULL, specialty text NOT NULL, registry_number text, color_code text, created_at timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE suppliers (id uuid NOT NULL, company_name text NOT NULL, cnpj text, contact_name text, phone text, created_at timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE user_settings (id uuid NOT NULL, user_id uuid NOT NULL, notify_expiry boolean, notify_days_before integer, created_at timestamp with time zone NOT NULL, updated_at timestamp with time zone NOT NULL, last_expiry_alert_dismissed timestamp with time zone DEFAULT NULL, organization_id uuid);
+
+-- Comentário para clareza
+COMMENT ON COLUMN sales.status IS 'Ex: -1 cancelada, 0 pendente, 1 finalizada';
+COMMENT ON COLUMN sales.payment_method IS 'Ex: 0 dinheiro, 1 pix, 2 crediario, 3 débito, 4 crédito,';
 
 CREATE INDEX IF NOT EXISTS idx_user_settings_last_alert_dismissed 
 ON public.user_settings(last_expiry_alert_dismissed);
