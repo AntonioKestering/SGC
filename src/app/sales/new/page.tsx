@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { ShoppingCart, Plus, Trash2, Save } from 'lucide-react';
+import { ShoppingCart, Trash2, Save } from 'lucide-react';
 
 interface ProductData {
   id: string;
@@ -20,6 +20,7 @@ interface SaleItem {
   product?: ProductData;
   quantity: number;
   unit_price: number;
+  discount_percent: number;
   discount_amount: number;
   tax_percent: number;
 }
@@ -54,10 +55,12 @@ export default function NewSalePage() {
 
   // Pacientes
   const [patients, setPatients] = useState<PatientData[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
 
   // Estado da submissão
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Buscar produtos e pacientes ao carregar página
   useEffect(() => {
@@ -71,14 +74,20 @@ export default function NewSalePage() {
         if (productsRes.ok) {
           const data = await productsRes.json();
           setAllProducts(data.products || []);
+        } else {
+          console.error('Erro ao buscar produtos');
         }
 
         if (patientsRes.ok) {
           const data = await patientsRes.json();
           setPatients(data.patients || []);
+        } else {
+          console.error('Erro ao buscar pacientes');
         }
       } catch (err) {
         console.error('Erro ao buscar dados:', err);
+      } finally {
+        setPatientsLoading(false);
       }
     }
 
@@ -119,6 +128,7 @@ export default function NewSalePage() {
         product,
         quantity: 1,
         unit_price: product.price_sale || 0,
+        discount_percent: 0,
         discount_amount: 0,
         tax_percent: 0,
       };
@@ -129,10 +139,30 @@ export default function NewSalePage() {
     setShowProductDropdown(false);
   }
 
-  // Atualizar item
+  // Atualizar item com cálculo automático de desconto
   function updateItem(id: string, updates: Partial<SaleItem>) {
     setItems(
-      items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      items.map((item) => {
+        if (item.id !== id) return item;
+
+        const updated = { ...item, ...updates };
+
+        // Se usuario mudou desconto percentual, calcula desconto em reais
+        if (updates.discount_percent !== undefined) {
+          const lineSubtotal = updated.quantity * updated.unit_price;
+          updated.discount_amount = (lineSubtotal * updated.discount_percent) / 100;
+        }
+
+        // Se usuario mudou desconto em reais, calcula desconto percentual
+        if (updates.discount_amount !== undefined && updates.discount_percent === undefined) {
+          const lineSubtotal = updated.quantity * updated.unit_price;
+          if (lineSubtotal > 0) {
+            updated.discount_percent = (updated.discount_amount / lineSubtotal) * 100;
+          }
+        }
+
+        return updated;
+      })
     );
   }
 
@@ -168,6 +198,7 @@ export default function NewSalePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
 
     if (items.length === 0) {
       setError('Adicione pelo menos 1 item à venda');
@@ -201,16 +232,21 @@ export default function NewSalePage() {
       const json = await response.json();
 
       if (!response.ok) {
-        setError(json.error || 'Erro ao criar venda');
+        // Erro detalhado do servidor
+        const errorMessage = json.error || 'Erro ao criar venda';
+        setError(`Erro ao finalizar venda: ${errorMessage}`);
         setIsSaving(false);
         return;
       }
 
-      // Sucesso - redirecionar para listagem
-      router.push('/sales');
+      // Sucesso
+      setSuccessMessage('Venda registrada com sucesso! Redirecionando...');
+      setTimeout(() => {
+        router.push('/sales');
+      }, 1500);
     } catch (err: any) {
       console.error('Erro ao criar venda:', err);
-      setError('Erro ao criar venda');
+      setError(`Erro ao finalizar venda: ${err.message || 'Erro desconhecido'}`);
       setIsSaving(false);
     }
   }
@@ -227,9 +263,15 @@ export default function NewSalePage() {
           </header>
 
           <div className="bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
+            {successMessage && (
+              <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 text-sm">✓ {successMessage}</p>
+              </div>
+            )}
+
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-red-400 text-sm">✕ {error}</p>
               </div>
             )}
 
@@ -241,19 +283,29 @@ export default function NewSalePage() {
                   <label className="block text-sm font-medium text-zinc-300 mb-2">
                     Cliente (Opcional)
                   </label>
-                  <select
-                    value={patientId}
-                    onChange={(e) => setPatientId(e.target.value)}
-                    className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-                    disabled={isSaving}
-                  >
-                    <option value="">Selecionar cliente...</option>
-                    {patients.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  {patientsLoading ? (
+                    <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
+                      Carregando pacientes...
+                    </div>
+                  ) : patients.length === 0 ? (
+                    <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
+                      Nenhum paciente cadastrado
+                    </div>
+                  ) : (
+                    <select
+                      value={patientId}
+                      onChange={(e) => setPatientId(e.target.value)}
+                      className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                      disabled={isSaving}
+                    >
+                      <option value="">Selecionar cliente...</option>
+                      {patients.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Método de Pagamento */}
@@ -340,8 +392,11 @@ export default function NewSalePage() {
                           <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 w-28">
                             Unitário
                           </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-400 w-20">
+                            Desconto %
+                          </th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-zinc-400 w-28">
-                            Desconto
+                            Desconto R$
                           </th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-400 w-20">
                             Imposto %
@@ -395,6 +450,20 @@ export default function NewSalePage() {
                                     updateItem(item.id, { unit_price: Number(e.target.value) || 0 })
                                   }
                                   className="w-24 px-2 py-1 bg-zinc-700 border border-zinc-600 rounded text-zinc-100 text-right focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                  disabled={isSaving}
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max="100"
+                                  value={item.discount_percent}
+                                  onChange={(e) =>
+                                    updateItem(item.id, { discount_percent: Number(e.target.value) || 0 })
+                                  }
+                                  className="w-16 px-2 py-1 bg-zinc-700 border border-zinc-600 rounded text-zinc-100 text-center focus:outline-none focus:ring-2 focus:ring-pink-500"
                                   disabled={isSaving}
                                 />
                               </td>

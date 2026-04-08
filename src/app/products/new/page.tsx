@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { PlusCircle, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Save } from 'lucide-react';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -19,9 +19,36 @@ export default function NewProductPage() {
     price_sale: '',
     supplier_id: '',
   });
+  const [profitPercent, setProfitPercent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  function computeProfitPercentFromStrings(priceStr: string, priceSaleStr: string): string {
+    if (!priceStr || priceStr === '') return '-';
+    if (!priceSaleStr || priceSaleStr === '') return '-';
+    try {
+      const p = Number(String(priceStr).replace(',', '.'));
+      const ps = Number(String(priceSaleStr).replace(',', '.'));
+      if (!p || p === 0) return '-';
+      const perc = ((ps - p) / p) * 100;
+      return perc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    } catch {
+      return '-';
+    }
+  }
+
+  function handleProfitPercentChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setProfitPercent(v);
+    // recalcula priceSale se tivermos price válido
+    const priceNum = Number(String(formData.price).replace(',', '.'));
+    const percNum = Number(String(v).replace(',', '.'));
+    if (!isNaN(priceNum) && priceNum > 0 && !isNaN(percNum)) {
+      const newPriceSale = priceNum * (1 + percNum / 100);
+      setFormData({ ...formData, price_sale: String(Number(newPriceSale.toFixed(2))) });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,18 +97,10 @@ export default function NewProductPage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-zinc-800 rounded-lg transition"
-          >
-            <ArrowLeft className="w-6 h-6 text-zinc-400" />
-          </button>
-          <h2 className="text-3xl font-semibold text-zinc-50 flex items-center">
-            <PlusCircle className="w-8 h-8 mr-3 text-pink-500" />
-            Novo Produto
-          </h2>
-        </div>
+        <h2 className="text-3xl font-semibold text-zinc-50 flex items-center mb-8">
+          <PlusCircle className="w-8 h-8 mr-3 text-pink-500" />
+          Novo Produto
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
           {success && (
@@ -154,7 +173,7 @@ export default function NewProductPage() {
           </div>
 
           <div>
-            <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço</label>
+            <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
             <input
               id="price"
               type="number"
@@ -167,21 +186,50 @@ export default function NewProductPage() {
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
+              <input
+                id="price_sale"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price_sale}
+                onChange={(e) => {
+                  setFormData({ ...formData, price_sale: e.target.value });
+                  // atualizar percentual quando o usuário editar price_sale diretamente
+                  const pNum = Number(String(formData.price).replace(',', '.'));
+                  const psNum = Number(String(e.target.value).replace(',', '.'));
+                  if (!isNaN(pNum) && pNum > 0 && !isNaN(psNum)) {
+                    const perc = ((psNum - pNum) / pNum) * 100;
+                    setProfitPercent(String(Number(perc.toFixed(2))));
+                  } else {
+                    setProfitPercent('');
+                  }
+                }}
+                placeholder="0.00"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
+            <div className="text-sm text-zinc-300 flex items-end pb-3">
+              <strong>Lucro (%):</strong> <span className="ml-2">{computeProfitPercentFromStrings(formData.price, formData.price_sale)}</span>
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
+            <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
             <input
-              id="price_sale"
+              id="profit_percent"
               type="number"
               step="0.01"
-              min="0"
-              value={formData.price_sale}
-              onChange={(e) => setFormData({ ...formData, price_sale: e.target.value })}
+              value={profitPercent}
+              onChange={handleProfitPercentChange}
               placeholder="0.00"
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
             />
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex gap-4 pt-4 border-t border-zinc-700">
             <button
               type="button"
               onClick={() => router.back()}
@@ -192,8 +240,9 @@ export default function NewProductPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 px-4 rounded-lg text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-zinc-900 disabled:opacity-50 transition duration-150"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-zinc-900 disabled:opacity-50 transition duration-150"
             >
+              <Save className="w-4 h-4" />
               {loading ? 'Cadastrando...' : 'Cadastrar Produto'}
             </button>
           </div>
