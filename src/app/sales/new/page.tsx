@@ -120,14 +120,14 @@ export default function NewSalePage() {
 
   // Filtrar pacientes conforme o usuário digita
   useEffect(() => {
-    if (!patientSearch.trim()) {
+    if (!patientSearch.trim() || !patients || patients.length === 0) {
       setFilteredPatients([]);
       setShowPatientDropdown(false);
       return;
     }
 
     const query = patientSearch.toLowerCase();
-    const filtered = patients.filter((p) => p.name.toLowerCase().includes(query));
+    const filtered = patients.filter((p) => p && p.name && p.name.toLowerCase().includes(query));
 
     setFilteredPatients(filtered);
     setShowPatientDropdown(filtered.length > 0);
@@ -324,14 +324,14 @@ export default function NewSalePage() {
                       />
 
                       {/* Se houver paciente selecionado, mostrar seleção */}
-                      {patientId && (
+                      {patientId && patients.length > 0 && (
                         <div className="mt-2 text-sm text-zinc-300">
-                          ✓ {patients.find((p) => p.id === patientId)?.name}
+                          ✓ {patients.find((p) => p.id === patientId)?.name || 'Paciente selecionado'}
                         </div>
                       )}
 
                       {/* Dropdown de Pacientes */}
-                      {showPatientDropdown && (
+                      {showPatientDropdown && filteredPatients && filteredPatients.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
                           {filteredPatients.map((patient) => (
                             <button
