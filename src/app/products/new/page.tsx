@@ -177,21 +177,21 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
-            <input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="0.00"
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-            />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
+              <input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="0.00"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
+
             <div>
               <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
               <input
@@ -216,22 +216,24 @@ export default function NewProductPage() {
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
               />
             </div>
-            <div className="text-sm text-zinc-300 flex items-end pb-3">
-              <strong>Lucro (%):</strong> <span className="ml-2">{computeProfitPercentFromStrings(formData.price, formData.price_sale)}</span>
-            </div>
           </div>
 
-          <div>
-            <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
-            <input
-              id="profit_percent"
-              type="number"
-              step="0.01"
-              value={profitPercent}
-              onChange={handleProfitPercentChange}
-              placeholder="0.00"
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-            />
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div className="text-sm text-zinc-300">
+              <strong>Lucro (%):</strong> {computeProfitPercentFromStrings(formData.price, formData.price_sale)}
+            </div>
+            <div>
+              <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
+              <input
+                id="profit_percent"
+                type="number"
+                step="0.01"
+                value={profitPercent}
+                onChange={handleProfitPercentChange}
+                placeholder="0.00"
+                className="w-48 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+              />
+            </div>
           </div>
 
           <div className="flex gap-4 pt-4 border-t border-zinc-700">

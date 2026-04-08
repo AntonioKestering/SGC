@@ -120,7 +120,13 @@ export default function NewSalePage() {
 
   // Filtrar pacientes conforme o usuário digita
   useEffect(() => {
-    if (!patientSearch.trim() || !patients || patients.length === 0) {
+    if (!patientSearch.trim()) {
+      setFilteredPatients([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+
+    if (!patients || patients.length === 0) {
       setFilteredPatients([]);
       setShowPatientDropdown(false);
       return;

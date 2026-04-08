@@ -58,6 +58,10 @@ export default function SalesPage() {
     }
 
     fetchSales();
+
+    // Refetch a cada 3 segundos para manter dados atualizados
+    const interval = setInterval(fetchSales, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   function formatDate(dateString: string): string {
