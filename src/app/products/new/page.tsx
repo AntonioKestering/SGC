@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { PlusCircle, Save } from 'lucide-react';
+import { PlusCircle, Save, ArrowLeft } from 'lucide-react';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -97,23 +97,28 @@ export default function NewProductPage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-3xl font-semibold text-zinc-50 flex items-center mb-8">
-          <PlusCircle className="w-8 h-8 mr-3 text-pink-500" />
-          Novo Produto
-        </h2>
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-zinc-800 rounded-lg transition"
+          >
+            <ArrowLeft className="w-6 h-6 text-zinc-400" />
+          </button>
+          <h2 className="text-3xl font-semibold text-zinc-50 flex items-center">
+            <PlusCircle className="w-8 h-8 mr-3 text-pink-500" />
+            Novo Produto
+          </h2>
+        </div>
+
+        {success && (
+          <div className="bg-green-900 p-4 rounded-lg text-green-200 mb-6 border border-green-700">✓ Produto cadastrado com sucesso! Redirecionando...</div>
+        )}
+
+        {error && (
+          <div className="bg-red-900 p-4 rounded-lg text-red-200 mb-6 border border-red-700">✕ {error}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
-          {success && (
-            <div className="bg-green-900 p-4 rounded-lg text-green-200 border border-green-700">
-              ✓ Produto cadastrado com sucesso! Redirecionando...
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-900 p-4 rounded-lg text-red-200 border border-red-700">
-              ✕ {error}
-            </div>
-          )}
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-zinc-200 mb-1">Nome *</label>
