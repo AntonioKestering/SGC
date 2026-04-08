@@ -53,6 +53,11 @@ export default function NewSalePage() {
   const [filteredProducts, setFilteredProducts] = useState<ProductData[]>([]);
   const [showProductDropdown, setShowProductDropdown] = useState<boolean>(false);
 
+  // Busca de pacientes
+  const [patientSearch, setPatientSearch] = useState<string>('');
+  const [filteredPatients, setFilteredPatients] = useState<PatientData[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState<boolean>(false);
+
   // Pacientes
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [patientsLoading, setPatientsLoading] = useState(true);
@@ -112,6 +117,21 @@ export default function NewSalePage() {
     setFilteredProducts(filtered);
     setShowProductDropdown(filtered.length > 0);
   }, [barcodeSearch, allProducts]);
+
+  // Filtrar pacientes conforme o usuário digita
+  useEffect(() => {
+    if (!patientSearch.trim()) {
+      setFilteredPatients([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+
+    const query = patientSearch.toLowerCase();
+    const filtered = patients.filter((p) => p.name.toLowerCase().includes(query));
+
+    setFilteredPatients(filtered);
+    setShowPatientDropdown(filtered.length > 0);
+  }, [patientSearch, patients]);
 
   // Adicionar produto à venda
   function addProductToSale(product: ProductData) {
@@ -292,19 +312,44 @@ export default function NewSalePage() {
                       Nenhum paciente cadastrado
                     </div>
                   ) : (
-                    <select
-                      value={patientId}
-                      onChange={(e) => setPatientId(e.target.value)}
-                      className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-                      disabled={isSaving}
-                    >
-                      <option value="">Selecionar cliente...</option>
-                      {patients.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={patientSearch}
+                        onChange={(e) => setPatientSearch(e.target.value)}
+                        placeholder="Buscar cliente por nome..."
+                        className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                        disabled={isSaving}
+                        autoComplete="off"
+                      />
+
+                      {/* Se houver paciente selecionado, mostrar seleção */}
+                      {patientId && (
+                        <div className="mt-2 text-sm text-zinc-300">
+                          ✓ {patients.find((p) => p.id === patientId)?.name}
+                        </div>
+                      )}
+
+                      {/* Dropdown de Pacientes */}
+                      {showPatientDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                          {filteredPatients.map((patient) => (
+                            <button
+                              key={patient.id}
+                              type="button"
+                              onClick={() => {
+                                setPatientId(patient.id);
+                                setPatientSearch('');
+                                setShowPatientDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-zinc-700 transition border-b border-zinc-700 last:border-b-0"
+                            >
+                              <div className="text-zinc-100 font-medium">{patient.name}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
