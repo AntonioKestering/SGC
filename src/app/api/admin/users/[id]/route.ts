@@ -4,6 +4,59 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { createRouteClient } from '@/lib/supabaseServer';
 
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  if (!id) {
+    return NextResponse.json({ error: 'ID do usuário é necessário' }, { status: 400 });
+  }
+
+  try {
+    const body = await request.json();
+    const { full_name, phone, role } = body;
+
+    const supabase = await createRouteClient();
+
+    // Validar usuário autenticado
+    const { data: { user: executor } } = await supabase.auth.getUser();
+    if (!executor) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    // Validar que o usuário está na mesma organização
+    const { data: targetProfile, error: targetError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', id)
+      .single();
+
+    if (targetError || !targetProfile) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    }
+
+    // Atualizar perfil na tabela profiles
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: full_name || null,
+        phone: phone || null,
+        role: role || 'recepcionista',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[API] Erro ao atualizar perfil:', updateError.message);
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Usuário atualizado com sucesso' });
+  } catch (err: any) {
+    console.error('[API] Erro ao processar PUT /api/admin/users/[id]:', err);
+    return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   

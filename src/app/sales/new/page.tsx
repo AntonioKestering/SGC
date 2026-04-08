@@ -122,13 +122,11 @@ export default function NewSalePage() {
   useEffect(() => {
     if (!patientSearch.trim()) {
       setFilteredPatients([]);
-      setShowPatientDropdown(false);
       return;
     }
 
     if (!patients || patients.length === 0) {
       setFilteredPatients([]);
-      setShowPatientDropdown(false);
       return;
     }
 
@@ -136,7 +134,6 @@ export default function NewSalePage() {
     const filtered = patients.filter((p) => p && p.name && p.name.toLowerCase().includes(query));
 
     setFilteredPatients(filtered);
-    setShowPatientDropdown(filtered.length > 0);
   }, [patientSearch, patients]);
 
   // Adicionar produto à venda
@@ -337,7 +334,7 @@ export default function NewSalePage() {
                       )}
 
                       {/* Dropdown de Pacientes */}
-                      {showPatientDropdown && filteredPatients && filteredPatients.length > 0 && (
+                      {patientSearch.trim() && filteredPatients && filteredPatients.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
                           {filteredPatients.map((patient) => (
                             <button
@@ -353,6 +350,13 @@ export default function NewSalePage() {
                               <div className="text-zinc-100 font-medium">{patient.name}</div>
                             </button>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Mensagem se nenhum resultado encontrado */}
+                      {patientSearch.trim() && filteredPatients && filteredPatients.length === 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 p-3">
+                          <div className="text-sm text-zinc-400">Nenhum paciente encontrado para "{patientSearch}"</div>
                         </div>
                       )}
                     </div>

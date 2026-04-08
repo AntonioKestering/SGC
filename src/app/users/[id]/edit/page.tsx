@@ -123,21 +123,7 @@ export default function EditUserPage() {
     setSuccess(false);
 
     try {
-      // Atualiza o perfil na tabela profiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          phone: phone,
-          role: role,
-        })
-        .eq('id', userId);
-
-      if (profileError) {
-        throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
-      }
-
-      // Se uma nova senha foi fornecida, atualiza via API
+      // Se uma nova senha foi fornecida, valida primeiro
       if (newPassword) {
         if (newPassword !== confirmPassword) {
           setError('As senhas não correspondem.');
@@ -150,16 +136,34 @@ export default function EditUserPage() {
           setLoading(false);
           return;
         }
+      }
 
-        // Chama a API para atualizar a senha
-        const res = await fetch(`/api/admin/users/${userId}/password`, {
+      // Atualiza os dados do usuário via API
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          phone: phone,
+          role: role,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao atualizar usuário');
+      }
+
+      // Se uma nova senha foi fornecida, atualiza via API
+      if (newPassword) {
+        const pwRes = await fetch(`/api/admin/users/${userId}/password`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: newPassword }),
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
+        if (!pwRes.ok) {
+          const errData = await pwRes.json().catch(() => ({}));
           throw new Error(errData.error || 'Erro ao atualizar senha');
         }
       }
