@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { ShoppingCart, PlusCircle, Eye, X } from 'lucide-react';
+import { ShoppingCart, PlusCircle, Eye, X, RotateCcw } from 'lucide-react';
 
 interface SaleData {
   id: string;
@@ -35,6 +35,7 @@ export default function SalesPage() {
   const router = useRouter();
   const [sales, setSales] = useState<SaleData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
 
   useEffect(() => {
@@ -58,11 +59,26 @@ export default function SalesPage() {
     }
 
     fetchSales();
-
-    // Refetch a cada 3 segundos para manter dados atualizados
-    const interval = setInterval(fetchSales, 3000);
-    return () => clearInterval(interval);
   }, []);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/sales');
+      if (!res.ok) {
+        console.error('Erro ao buscar vendas', await res.text());
+        setSales([]);
+        return;
+      }
+      const json = await res.json();
+      setSales(json.sales || []);
+    } catch (err) {
+      console.error('Erro ao buscar /api/sales:', err);
+      setSales([]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -145,13 +161,24 @@ export default function SalesPage() {
       </header>
 
       {/* Botão Nova Venda */}
-      <button
-        onClick={() => router.push('/sales/new')}
-        className="mb-6 flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition"
-      >
-        <PlusCircle className="w-5 h-5" />
-        + Nova Venda
-      </button>
+      <div className="mb-6 flex items-center gap-2">
+        <button
+          onClick={() => router.push('/sales/new')}
+          className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition"
+        >
+          <PlusCircle className="w-5 h-5" />
+          + Nova Venda
+        </button>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Recarregar vendas"
+        >
+          <RotateCcw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Recarregando...' : 'Recarregar'}
+        </button>
+      </div>
 
       {/* Tabela de Vendas */}
       {filteredSales.length === 0 ? (
