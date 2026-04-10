@@ -29,7 +29,7 @@ export async function GET(request: Request, context: any) {
       .from('sales')
       .select(`
         *,
-        patient:patients(id, name),
+        patient:patients(id, full_name),
         sale_items(
           *,
           product:products(id, name, barcode, price_sale)
