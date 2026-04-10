@@ -56,7 +56,6 @@ export default function NewSalePage() {
   // Busca de pacientes
   const [patientSearch, setPatientSearch] = useState<string>('');
   const [filteredPatients, setFilteredPatients] = useState<PatientData[]>([]);
-  const [showPatientDropdown, setShowPatientDropdown] = useState<boolean>(false);
 
   // Pacientes
   const [patients, setPatients] = useState<PatientData[]>([]);
@@ -299,88 +298,84 @@ export default function NewSalePage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Seção: Dados da Venda */}
-              <div className="grid grid-cols-2 gap-6">
-                {/* Cliente */}
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Cliente (Opcional)
-                  </label>
-                  {patientsLoading ? (
-                    <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
-                      Carregando pacientes...
-                    </div>
-                  ) : patients.length === 0 ? (
-                    <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
-                      Nenhum paciente cadastrado
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={patientSearch}
-                        onChange={(e) => setPatientSearch(e.target.value)}
-                        placeholder="Buscar cliente por nome..."
-                        className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-                        disabled={isSaving}
-                        autoComplete="off"
-                      />
+              {/* Seção: Cliente (full width para dropdown funcionar) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Cliente (Opcional)
+                </label>
+                {patientsLoading ? (
+                  <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
+                    Carregando pacientes...
+                  </div>
+                ) : patients.length === 0 ? (
+                  <div className="px-4 py-2 bg-zinc-800 text-zinc-500 text-sm rounded-lg">
+                    Nenhum paciente cadastrado
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
+                      placeholder="Buscar cliente por nome..."
+                      className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                      disabled={isSaving}
+                      autoComplete="off"
+                    />
 
-                      {/* Se houver paciente selecionado, mostrar seleção */}
-                      {patientId && patients.length > 0 && (
-                        <div className="mt-2 text-sm text-zinc-300">
-                          ✓ {patients.find((p) => p.id === patientId)?.name || 'Paciente selecionado'}
-                        </div>
-                      )}
+                    {/* Se houver paciente selecionado, mostrar seleção */}
+                    {patientId && patients.length > 0 && (
+                      <div className="mt-2 text-sm text-zinc-300">
+                        ✓ {patients.find((p) => p.id === patientId)?.name || 'Paciente selecionado'}
+                      </div>
+                    )}
 
-                      {/* Dropdown de Pacientes */}
-                      {patientSearch.trim() && filteredPatients && filteredPatients.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                          {filteredPatients.map((patient) => (
-                            <button
-                              key={patient.id}
-                              type="button"
-                              onClick={() => {
-                                setPatientId(patient.id);
-                                setPatientSearch('');
-                                setShowPatientDropdown(false);
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-zinc-700 transition border-b border-zinc-700 last:border-b-0"
-                            >
-                              <div className="text-zinc-100 font-medium">{patient.name}</div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    {/* Dropdown de Pacientes */}
+                    {patientSearch.trim() && filteredPatients && filteredPatients.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                        {filteredPatients.map((patient) => (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            onClick={() => {
+                              setPatientId(patient.id);
+                              setPatientSearch('');
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-zinc-700 transition border-b border-zinc-700 last:border-b-0"
+                          >
+                            <div className="text-zinc-100 font-medium">{patient.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                      {/* Mensagem se nenhum resultado encontrado */}
-                      {patientSearch.trim() && filteredPatients && filteredPatients.length === 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 p-3">
-                          <div className="text-sm text-zinc-400">Nenhum paciente encontrado para "{patientSearch}"</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    {/* Mensagem se nenhum resultado encontrado */}
+                    {patientSearch.trim() && filteredPatients && filteredPatients.length === 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 p-3">
+                        <div className="text-sm text-zinc-400">Nenhum paciente encontrado para "{patientSearch}"</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-                {/* Método de Pagamento */}
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Método de Pagamento
-                  </label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(Number(e.target.value))}
-                    className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-                    disabled={isSaving}
-                  >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.value} value={method.value}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Seção: Dados da Venda (Método de Pagamento) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  Método de Pagamento
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                  disabled={isSaving}
+                >
+                  {PAYMENT_METHODS.map((method) => (
+                    <option key={method.value} value={method.value}>
+                      {method.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Seção: Buscar e Adicionar Produtos */}
