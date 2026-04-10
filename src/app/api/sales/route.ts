@@ -26,7 +26,7 @@ export async function GET() {
       .from('sales')
       .select(`
         *,
-        patient:patients(id, name),
+        patient:patients(id, full_name),
         sale_items(*)
       `)
       .eq('organization_id', profile.organization_id)

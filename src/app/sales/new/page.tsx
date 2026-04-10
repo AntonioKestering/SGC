@@ -87,9 +87,10 @@ export default function NewSalePage() {
 
         if (patientsRes.ok) {
           const data = await patientsRes.json();
+          console.log('[NewSale] Pacientes recebidos da API:', data.patients);
           setPatients(data.patients || []);
         } else {
-          console.error('Erro ao buscar pacientes');
+          console.error('Erro ao buscar pacientes', await patientsRes.text());
         }
       } catch (err) {
         console.error('Erro ao buscar dados:', err);
@@ -141,11 +142,13 @@ export default function NewSalePage() {
       if (p.cpf) {
         const cleanCpf = p.cpf.replace(/\D/g, '');
         const cleanQuery = query.replace(/\D/g, '');
-        if (cleanCpf.includes(cleanQuery)) return true;
+        // Só buscar por CPF se houver números na query
+        if (cleanQuery && cleanCpf.includes(cleanQuery)) return true;
       }
       return false;
     });
 
+    console.log(`[Filtro Pacientes] Query: "${query}", Total pacientes: ${patients.length}, Filtrados: ${filtered.length}`, filtered);
     setFilteredPatients(filtered);
   }, [patientSearch, patients]);
 

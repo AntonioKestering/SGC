@@ -10,7 +10,7 @@ import { formatPhone } from '@/lib/phoneFormatter';
 
 interface PatientData {
   id: string;
-  full_name: string;
+  name: string;
   cpf?: string;
   phone?: string;
   birth_date?: string;
@@ -121,7 +121,7 @@ export default function PatientsPage() {
               <tbody className="divide-y divide-zinc-800">
                 {patients.map((patient) => (
                   <tr key={patient.id} className="hover:bg-zinc-800 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{patient.full_name}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{patient.name}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{patient.cpf || '-'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPhone(patient.phone) || '-'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(patient.birth_date)}</td>

@@ -9,7 +9,7 @@ import { ShoppingCart, PlusCircle, Eye, X, RotateCcw } from 'lucide-react';
 interface SaleData {
   id: string;
   patient_id?: string | null;
-  patient?: { id: string; name: string } | null;
+  patient?: { id: string; full_name: string } | null;
   total_amount: number;
   sale_date: string;
   status: number; // -1 cancelada, 0 pendente, 1 finalizada
@@ -222,7 +222,7 @@ export default function SalesPage() {
                   <tr key={sale.id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition">
                     <td className="px-6 py-4 text-zinc-100">{formatDate(sale.sale_date)}</td>
                     <td className="px-6 py-4 text-zinc-100">
-                      {sale.patient?.name || 'Venda Avulsa'}
+                      {sale.patient?.full_name || 'Venda Avulsa'}
                     </td>
                     <td className="px-6 py-4 text-zinc-100">{paymentLabel}</td>
                     <td className="px-6 py-4 text-right text-zinc-100 font-semibold">

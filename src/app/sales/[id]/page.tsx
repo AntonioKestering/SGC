@@ -24,7 +24,7 @@ interface SaleItemData {
 interface SaleData {
   id: string;
   patient_id?: string | null;
-  patient?: { id: string; name: string } | null;
+  patient?: { id: string; full_name: string } | null;
   total_amount: number;
   subtotal: number;
   discount_amount?: number | null;
@@ -187,7 +187,7 @@ export default function ViewSalePage() {
                   Cliente
                 </p>
                 <p className="text-lg text-zinc-100 font-medium">
-                  {saleData.patient?.name || 'Venda Avulsa'}
+                  {saleData.patient?.full_name || 'Venda Avulsa'}
                 </p>
               </div>
 
