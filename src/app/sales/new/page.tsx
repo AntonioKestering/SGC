@@ -28,6 +28,9 @@ interface SaleItem {
 interface PatientData {
   id: string;
   name: string;
+  cpf?: string | null;
+  birth_date?: string | null;
+  phone?: string | null;
 }
 
 const PAYMENT_METHODS = [
@@ -130,7 +133,18 @@ export default function NewSalePage() {
     }
 
     const query = patientSearch.toLowerCase();
-    const filtered = patients.filter((p) => p && p.name && p.name.toLowerCase().includes(query));
+    const filtered = patients.filter((p) => {
+      if (!p) return false;
+      // Busca por nome
+      if (p.name && p.name.toLowerCase().includes(query)) return true;
+      // Busca por CPF (removendo caracteres especiais para comparação)
+      if (p.cpf) {
+        const cleanCpf = p.cpf.replace(/\D/g, '');
+        const cleanQuery = query.replace(/\D/g, '');
+        if (cleanCpf.includes(cleanQuery)) return true;
+      }
+      return false;
+    });
 
     setFilteredPatients(filtered);
   }, [patientSearch, patients]);
@@ -317,7 +331,7 @@ export default function NewSalePage() {
                       type="text"
                       value={patientSearch}
                       onChange={(e) => setPatientSearch(e.target.value)}
-                      placeholder="Buscar cliente por nome..."
+                      placeholder="Buscar por nome ou CPF..."
                       className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
                       disabled={isSaving}
                       autoComplete="off"
@@ -332,7 +346,7 @@ export default function NewSalePage() {
 
                     {/* Dropdown de Pacientes */}
                     {patientSearch.trim() && filteredPatients && filteredPatients.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
                         {filteredPatients.map((patient) => (
                           <button
                             key={patient.id}
@@ -341,9 +355,18 @@ export default function NewSalePage() {
                               setPatientId(patient.id);
                               setPatientSearch('');
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-zinc-700 transition border-b border-zinc-700 last:border-b-0"
+                            className="w-full text-left px-4 py-3 hover:bg-zinc-700 transition border-b border-zinc-700 last:border-b-0 space-y-1"
                           >
                             <div className="text-zinc-100 font-medium">{patient.name}</div>
+                            <div className="text-xs text-zinc-400 space-y-0.5">
+                              {patient.cpf && <div>CPF: {patient.cpf}</div>}
+                              {patient.birth_date && (
+                                <div>
+                                  Nascimento: {new Date(patient.birth_date).toLocaleDateString('pt-BR')}
+                                </div>
+                              )}
+                              {patient.phone && <div>Telefone: {patient.phone}</div>}
+                            </div>
                           </button>
                         ))}
                       </div>
