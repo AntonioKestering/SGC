@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { ShoppingCart, PlusCircle, Eye, X, RotateCcw } from 'lucide-react';
+import { ShoppingCart, PlusCircle, Eye, X, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SaleData {
   id: string;
@@ -37,6 +37,14 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<number | 'all'>('all');
+  
+  // Filtro avançado
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [filterClient, setFilterClient] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [filterValueFrom, setFilterValueFrom] = useState<string>('');
+  const [filterValueTo, setFilterValueTo] = useState<string>('');
 
   useEffect(() => {
     async function fetchSales() {
@@ -123,8 +131,40 @@ export default function SalesPage() {
     }
   }
 
-  const filteredSales =
-    statusFilter === 'all' ? sales : sales.filter((s) => s.status === statusFilter);
+  const filteredSales = sales.filter((sale) => {
+    // Filtro por status
+    if (statusFilter !== 'all' && sale.status !== statusFilter) return false;
+
+    // Filtro por cliente
+    if (filterClient.trim()) {
+      const clientName = sale.patient?.full_name || 'Venda Avulsa';
+      if (!clientName.toLowerCase().includes(filterClient.toLowerCase())) return false;
+    }
+
+    // Filtro por data
+    if (filterDateFrom || filterDateTo) {
+      const saleDate = new Date(sale.sale_date);
+      if (filterDateFrom) {
+        const dateFrom = new Date(filterDateFrom);
+        dateFrom.setHours(0, 0, 0, 0);
+        if (saleDate < dateFrom) return false;
+      }
+      if (filterDateTo) {
+        const dateTo = new Date(filterDateTo);
+        dateTo.setHours(23, 59, 59, 999);
+        if (saleDate > dateTo) return false;
+      }
+    }
+
+    // Filtro por valor
+    if (filterValueFrom || filterValueTo) {
+      const valueFrom = filterValueFrom ? parseFloat(filterValueFrom) : 0;
+      const valueTo = filterValueTo ? parseFloat(filterValueTo) : Infinity;
+      if (sale.total_amount < valueFrom || sale.total_amount > valueTo) return false;
+    }
+
+    return true;
+  });
 
   if (loading) {
     return (
@@ -144,8 +184,8 @@ export default function SalesPage() {
           Vendas
         </h2>
 
-        {/* Filtros */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Filtros por Status */}
+        <div className="flex gap-2 flex-wrap mb-4">
           {['all', -1, 0, 1].map((status) => (
             <button
               key={String(status)}
@@ -162,6 +202,117 @@ export default function SalesPage() {
             </button>
           ))}
         </div>
+
+        {/* Botão Filtro Avançado */}
+        <button
+          onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition"
+        >
+          {showAdvancedFilter ? (
+            <>
+              <ChevronUp className="w-5 h-5" />
+              Ocultar Filtros Avançados
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-5 h-5" />
+              Mostrar Filtros Avançados
+            </>
+          )}
+        </button>
+
+        {/* Painel Filtro Avançado */}
+        {showAdvancedFilter && (
+          <div className="mt-4 p-6 bg-zinc-900 border border-zinc-800 rounded-lg space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Filtro por Cliente */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Cliente
+                </label>
+                <input
+                  type="text"
+                  value={filterClient}
+                  onChange={(e) => setFilterClient(e.target.value)}
+                  placeholder="Nome do cliente..."
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+              </div>
+
+              {/* Filtro por Data (De) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Data De
+                </label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+              </div>
+
+              {/* Filtro por Data (Até) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Data Até
+                </label>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+              </div>
+
+              {/* Filtro por Valor (De) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Valor De (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={filterValueFrom}
+                  onChange={(e) => setFilterValueFrom(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+              </div>
+
+              {/* Filtro por Valor (Até) */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                  Valor Até (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={filterValueTo}
+                  onChange={(e) => setFilterValueTo(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Botão de Limpar Filtros */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setFilterClient('');
+                  setFilterDateFrom('');
+                  setFilterDateTo('');
+                  setFilterValueFrom('');
+                  setFilterValueTo('');
+                }}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition"
+              >
+                Limpar Filtros
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Botão Nova Venda */}
