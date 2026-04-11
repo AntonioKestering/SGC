@@ -59,6 +59,35 @@ CREATE TABLE specialists (id uuid NOT NULL, profile_id uuid NOT NULL, specialty 
 CREATE TABLE suppliers (id uuid NOT NULL, company_name text NOT NULL, cnpj text, contact_name text, phone text, created_at timestamp with time zone NOT NULL, organization_id uuid);
 CREATE TABLE user_settings (id uuid NOT NULL, user_id uuid NOT NULL, notify_expiry boolean, notify_days_before integer, created_at timestamp with time zone NOT NULL, updated_at timestamp with time zone NOT NULL, last_expiry_alert_dismissed timestamp with time zone DEFAULT NULL, organization_id uuid);
 
+--Controle de estoque e validade
+ALTER TABLE products 
+  DROP COLUMN stock_quantity, 
+  DROP COLUMN expiry_date;
+
+CREATE TABLE product_batches (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    product_id uuid NOT NULL, -- FK para a tabela products
+    organization_id uuid NOT NULL,
+    
+    batch_number VARCHAR(50), -- O lote que vem impresso na caixa pelo fabricante
+    expiry_date DATE NOT NULL, -- A validade específica deste lote
+    
+    initial_quantity integer NOT NULL, -- Quantidade que entrou
+    current_quantity integer NOT NULL DEFAULT 0, -- Quantidade que ainda resta
+    
+    cost_price numeric(15,2), -- Preço de custo deste lote específico
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    
+    -- Relacionamento (Chave Estrangeira)
+    CONSTRAINT fk_product_batch 
+        FOREIGN KEY (product_id) 
+        REFERENCES products(id) 
+        ON DELETE CASCADE
+);
+
+-- Índice para acelerar a busca de validade (essencial para o PVPS)
+CREATE INDEX idx_batches_expiry ON product_batches(product_id, expiry_date);
+
 -- Comentário para clareza
 COMMENT ON COLUMN sales.status IS 'Ex: -1 cancelada, 0 pendente, 1 finalizada';
 COMMENT ON COLUMN sales.payment_method IS 'Ex: 0 dinheiro, 1 pix, 2 crediario, 3 débito, 4 crédito,';
