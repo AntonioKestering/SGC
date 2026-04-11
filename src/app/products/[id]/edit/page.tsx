@@ -15,8 +15,6 @@ interface ProductProfile {
   name: string;
   description?: string | null;
   barcode?: string | null;
-  stock_quantity: number;
-  expiry_date?: string | null;
   price?: string | null;
   price_sale?: string | null;
   created_at: string;
@@ -31,8 +29,6 @@ export default function EditProductPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [stockQuantity, setStockQuantity] = useState<number>(0);
-  const [expiryDate, setExpiryDate] = useState('');
   const [price, setPrice] = useState('');
   const [priceSale, setPriceSale] = useState('');
   const [profitPercent, setProfitPercent] = useState('');
@@ -55,8 +51,6 @@ export default function EditProductPage() {
         setName(product.name || '');
         setDescription(product.description || '');
         setBarcode(product.barcode || '');
-        setStockQuantity(product.stock_quantity ?? 0);
-        setExpiryDate(product.expiry_date || '');
         setPrice(product.price != null ? String(Number(product.price).toFixed(2)) : '');
         setPriceSale(product.price_sale != null ? String(Number(product.price_sale).toFixed(2)) : '');
         // inicializa percentual de lucro
@@ -98,8 +92,6 @@ export default function EditProductPage() {
           name,
           description: description || null,
           barcode: barcode || null,
-          stock_quantity: Number(stockQuantity) || 0,
-          expiry_date: expiryDate || null,
           price: price !== '' ? Number(String(price).replace(',', '.')) : null,
           price_sale: priceSale !== '' ? Number(String(priceSale).replace(',', '.')) : null,
         }),
@@ -225,39 +217,14 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="barcode" className="block text-sm font-medium text-zinc-200 mb-1">Código de Barras</label>
-              <input
-                id="barcode"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="stock_quantity" className="block text-sm font-medium text-zinc-200 mb-1">Quantidade em Estoque</label>
-              <input
-                id="stock_quantity"
-                type="number"
-                min={0}
-                value={stockQuantity}
-                onChange={(e) => setStockQuantity(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="expiry_date" className="block text-sm font-medium text-zinc-200 mb-1">Validade</label>
-              <input
-                id="expiry_date"
-                type="date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
+          <div>
+            <label htmlFor="barcode" className="block text-sm font-medium text-zinc-200 mb-1">Código de Barras</label>
+            <input
+              id="barcode"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

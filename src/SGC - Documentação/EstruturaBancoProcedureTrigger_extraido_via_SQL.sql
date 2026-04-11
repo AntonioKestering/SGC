@@ -63,6 +63,7 @@ CREATE TABLE user_settings (id uuid NOT NULL, user_id uuid NOT NULL, notify_expi
 ALTER TABLE products 
   DROP COLUMN stock_quantity, 
   DROP COLUMN expiry_date;
+  DROP COLUMN price;
 
 CREATE TABLE product_batches (
     id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,

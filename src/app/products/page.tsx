@@ -14,10 +14,8 @@ interface ProductData {
   name: string;
   description?: string | null;
   barcode?: string | null;
-  stock_quantity: number;
-  expiry_date?: string | null;
-    price?: string | null;
-    price_sale?: string | null;
+  price?: string | null;
+  price_sale?: string | null;
   created_at: string;
 }
 
@@ -183,8 +181,7 @@ export default function ProductsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Cod. Barras</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Nome</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Estoque</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Validade</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Saldo de Estoque</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço de Compra</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Preço de Venda</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Lucro (%)</th>
@@ -194,7 +191,6 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-zinc-800">
                 {products.map((p) => {
                   const totalBatchStock = batchStocks[p.id] || 0;
-                  const displayStock = totalBatchStock > 0 ? totalBatchStock : p.stock_quantity ?? 0;
                   
                   return (
                     <tr key={p.id} className="hover:bg-zinc-800 transition-colors">
@@ -202,7 +198,7 @@ export default function ProductsPage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{p.name}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-zinc-300 font-semibold">{displayStock}</span>
+                          <span className="text-sm text-zinc-300 font-semibold">{totalBatchStock}</span>
                           {totalBatchStock > 0 && (
                             <button
                               onClick={() => setSelectedBatchProduct({ id: p.id, name: p.name })}
@@ -215,7 +211,6 @@ export default function ProductsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">{computeProfitPercent(p.price, p.price_sale)}</td>

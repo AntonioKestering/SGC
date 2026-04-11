@@ -11,7 +11,6 @@ interface ProductData {
   name: string;
   barcode: string | null;
   price_sale: number | null;
-  stock_quantity: number;
 }
 
 interface SaleItem {
@@ -558,8 +557,7 @@ export default function NewSalePage() {
                           <div className="text-zinc-100 font-medium">{product.name}</div>
                           <div className="text-xs text-zinc-400">
                             Código: {product.barcode || 'N/A'} | Preço: R${' '}
-                            {(product.price_sale || 0).toFixed(2)} | Estoque:{' '}
-                            {product.stock_quantity}
+                            {(product.price_sale || 0).toFixed(2)}
                           </div>
                         </button>
                       ))}

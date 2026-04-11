@@ -14,8 +14,6 @@ export default function NewProductPage() {
     name: '',
     description: '',
     barcode: '',
-    stock_quantity: 0,
-    expiry_date: '',
     price: '',
     price_sale: '',
     supplier_id: '',
@@ -74,8 +72,6 @@ export default function NewProductPage() {
           name: formData.name,
           description: formData.description || null,
           barcode: formData.barcode || null,
-          stock_quantity: Number(formData.stock_quantity) || 0,
-          expiry_date: formData.expiry_date || null,
           price: formData.price !== '' ? Number(String(formData.price).replace(',', '.')) : null,
           price_sale: formData.price_sale !== '' ? Number(String(formData.price_sale).replace(',', '.')) : null,
         }),
@@ -162,39 +158,14 @@ export default function NewProductPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="barcode" className="block text-sm font-medium text-zinc-200 mb-1">Código de Barras</label>
-              <input
-                id="barcode"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="stock_quantity" className="block text-sm font-medium text-zinc-200 mb-1">Quantidade em Estoque</label>
-              <input
-                id="stock_quantity"
-                type="number"
-                min={0}
-                value={formData.stock_quantity}
-                onChange={(e) => setFormData({ ...formData, stock_quantity: Number(e.target.value) })}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="expiry_date" className="block text-sm font-medium text-zinc-200 mb-1">Validade</label>
-              <input
-                id="expiry_date"
-                type="date"
-                value={formData.expiry_date}
-                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
+          <div>
+            <label htmlFor="barcode" className="block text-sm font-medium text-zinc-200 mb-1">Código de Barras</label>
+            <input
+              id="barcode"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

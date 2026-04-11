@@ -41,7 +41,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, barcode, stock_quantity, expiry_date, price, price_sale, supplier_id } = body;
+    const { name, description, barcode, price, price_sale, supplier_id } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Nome do produto é obrigatório' }, { status: 400 });
@@ -71,8 +71,6 @@ export async function POST(request: Request) {
           name,
           description: description || null,
           barcode: barcode || null,
-          stock_quantity: Number(stock_quantity) || 0,
-          expiry_date: expiry_date || null,
           price: price || null,
           price_sale: price_sale || null,
           supplier_id: supplier_id || null,
