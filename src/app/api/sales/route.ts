@@ -77,59 +77,73 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Usuário sem organização' }, { status: 403 });
     }
 
-    // FASE 3: Validar estoque disponível em batches antes de criar venda
-    const batchValidations: Array<{ batch_id: string | null; product_id: string; quantity: number }> = [];
+    // FASE 3: Validar estoque disponível e planejar o consumo em lotes
+    const finalItemsToInsert: any[] = [];
+    const stockConsumptions: Array<{ batch_id: string; quantity: number }> = [];
     
     for (const item of items) {
+      // Buscar todos os lotes do produto ordenados por vencimento (PVPS)
+      const { data: allBatches, error: errorBatches } = await supabase
+        .from('product_batches')
+        .select('id, current_quantity, expiry_date')
+        .eq('product_id', item.product_id)
+        .eq('organization_id', profile.organization_id)
+        .order('expiry_date', { ascending: true });
+
+      if (errorBatches) {
+        return NextResponse.json({ error: 'Erro ao validar estoque do produto' }, { status: 500 });
+      }
+
+      const totalAvailable = (allBatches || []).reduce((sum, b) => sum + (b.current_quantity || 0), 0);
+      
+      if (totalAvailable < item.quantity) {
+        return NextResponse.json(
+          { 
+            error: `Estoque insuficiente para o produto. Disponível: ${totalAvailable}, Solicitado: ${item.quantity}` 
+          },
+          { status: 400 }
+        );
+      }
+
+      let remainingToAssign = item.quantity;
+      const discountPerUnit = (item.discount_amount || 0) / item.quantity;
+      
+      // 1. Tentar consumir do lote selecionado pelo usuário primeiro
       if (item.batch_id) {
-        // Se batch_id foi especificado, validar estoque neste batch
-        const { data: batch, error: batchError } = await supabase
-          .from('product_batches')
-          .select('current_quantity')
-          .eq('id', item.batch_id)
-          .eq('organization_id', profile.organization_id)
-          .single();
-
-        if (batchError || !batch) {
-          return NextResponse.json(
-            { error: `Lote não encontrado ou não pertence a sua organização` },
-            { status: 400 }
-          );
+        const preferredBatch = allBatches?.find(b => b.id === item.batch_id);
+        if (preferredBatch && preferredBatch.current_quantity > 0) {
+          const qtyToTake = Math.min(preferredBatch.current_quantity, remainingToAssign);
+          if (qtyToTake > 0) {
+            stockConsumptions.push({ batch_id: preferredBatch.id, quantity: qtyToTake });
+            finalItemsToInsert.push({ 
+              ...item, 
+              batch_id: preferredBatch.id, 
+              quantity: qtyToTake, 
+              discount_amount: discountPerUnit * qtyToTake 
+            });
+            remainingToAssign -= qtyToTake;
+            preferredBatch.current_quantity -= qtyToTake;
+          }
         }
+      }
 
-        if (batch.current_quantity < item.quantity) {
-          return NextResponse.json(
-            { 
-              error: `Estoque insuficiente no lote. Disponível: ${batch.current_quantity}, Solicitado: ${item.quantity}` 
-            },
-            { status: 400 }
-          );
+      // 2. Consumir do restante dos lotes usando PVPS (Vencimento mais próximo primeiro)
+      if (remainingToAssign > 0 && allBatches) {
+        for (const batch of allBatches) {
+          if (remainingToAssign <= 0) break;
+          if (batch.current_quantity <= 0) continue;
+
+          const qtyToTake = Math.min(batch.current_quantity, remainingToAssign);
+          stockConsumptions.push({ batch_id: batch.id, quantity: qtyToTake });
+          finalItemsToInsert.push({ 
+            ...item, 
+            batch_id: batch.id, 
+            quantity: qtyToTake, 
+            discount_amount: discountPerUnit * qtyToTake 
+          });
+          remainingToAssign -= qtyToTake;
+          batch.current_quantity -= qtyToTake;
         }
-
-        batchValidations.push({ batch_id: item.batch_id, product_id: item.product_id, quantity: item.quantity });
-      } else {
-        // Se sem batch_id, validar estoque total do produto
-        const { data: batches, error: batchesError } = await supabase
-          .from('product_batches')
-          .select('current_quantity')
-          .eq('product_id', item.product_id)
-          .eq('organization_id', profile.organization_id);
-
-        if (batchesError) {
-          return NextResponse.json({ error: 'Erro ao validar estoque' }, { status: 500 });
-        }
-
-        const totalAvailable = (batches || []).reduce((sum, b) => sum + (b.current_quantity || 0), 0);
-        if (totalAvailable < item.quantity) {
-          return NextResponse.json(
-            { 
-              error: `Estoque insuficiente. Disponível: ${totalAvailable}, Solicitado: ${item.quantity}` 
-            },
-            { status: 400 }
-          );
-        }
-
-        batchValidations.push({ batch_id: null, product_id: item.product_id, quantity: item.quantity });
       }
     }
 
@@ -172,11 +186,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: saleError.message }, { status: 500 });
     }
 
-    // Inserir itens da venda com batch_id
-    const itemsToInsert = items.map((item: any) => ({
+    // Inserir itens da venda com batch_id (agora suportando múltiplos itens divididos)
+    const itemsToInsertRecords = finalItemsToInsert.map((item: any) => ({
       sale_id: sale.id,
       product_id: item.product_id,
-      batch_id: item.batch_id || null, // NOVO: incluir batch_id
+      batch_id: item.batch_id || null,
       quantity: item.quantity,
       unit_price: item.unit_price,
       discount_amount: item.discount_amount || 0,
@@ -189,59 +203,38 @@ export async function POST(request: Request) {
 
     const { error: itemsError } = await supabase
       .from('sale_items')
-      .insert(itemsToInsert);
+      .insert(itemsToInsertRecords);
 
     if (itemsError) {
       console.error('[API] Erro ao inserir itens da venda:', itemsError.message);
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
 
-    // FASE 3: Consumir estoque dos batches
-    for (const validation of batchValidations) {
-      if (validation.batch_id) {
-        // Decrementar estoque do batch específico
-        const { error: updateError } = await supabase
-          .from('product_batches')
-          .update({ 
-            current_quantity: supabase.rpc('increment', { 
-              x: -validation.quantity 
-            }),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', validation.batch_id);
+    // FASE 3: Consumir estoque dos batches de forma agrupada
+    const consumptionsByBatch = stockConsumptions.reduce((acc, cons) => {
+      acc[cons.batch_id] = (acc[cons.batch_id] || 0) + cons.quantity;
+      return acc;
+    }, {} as Record<string, number>);
 
-        if (updateError) {
-          // Não fazer rollback automático por agora (Fase 4)
-          console.error('[API] Erro ao atualizar estoque do batch:', updateError.message);
-        }
-      } else {
-        // Consumir do(s) batch(es) com PVPS (expiry_date ASC)
-        const { data: batches, error: batchesError } = await supabase
-          .from('product_batches')
-          .select('id, current_quantity')
-          .eq('product_id', validation.product_id)
-          .eq('organization_id', profile.organization_id)
-          .order('expiry_date', { ascending: true });
+    for (const [batchId, qty] of Object.entries(consumptionsByBatch)) {
+      const { data: currentBatch } = await supabase
+        .from('product_batches')
+        .select('current_quantity')
+        .eq('id', batchId)
+        .single();
+        
+      const newQty = (currentBatch?.current_quantity || 0) - qty;
 
-        if (batchesError || !batches) continue;
+      const { error: updateError } = await supabase
+        .from('product_batches')
+        .update({ 
+          current_quantity: Math.max(0, newQty),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', batchId);
 
-        let remainingQty = validation.quantity;
-        for (const batch of batches) {
-          if (remainingQty <= 0) break;
-
-          const qtyToConsume = Math.min(remainingQty, batch.current_quantity);
-          const newQty = batch.current_quantity - qtyToConsume;
-
-          await supabase
-            .from('product_batches')
-            .update({ 
-              current_quantity: newQty,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', batch.id);
-
-          remainingQty -= qtyToConsume;
-        }
+      if (updateError) {
+        console.error('[API] Erro ao atualizar estoque do batch:', updateError.message);
       }
     }
 
