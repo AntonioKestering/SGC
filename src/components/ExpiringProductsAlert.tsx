@@ -9,6 +9,7 @@ interface Product {
   name: string;
   expiry_date: string;
   stock_quantity: number;
+  batch_number?: string;
 }
 
 interface ExpiringProductsAlertProps {
@@ -59,11 +60,11 @@ export function ExpiringProductsAlert({
   return (
     <div className="mb-6 p-4 rounded-lg bg-yellow-900 border border-yellow-700 text-yellow-100 flex justify-between items-start">
       <div className="flex-1">
-        <strong className="block mb-2">Atenção — produtos próximos do vencimento:</strong>
+        <strong className="block mb-2">Atenção — Lotes próximos ou após o vencimento com estoque:</strong>
         <ul className="list-disc list-inside text-sm space-y-1">
           {products.map((p) => (
             <li key={p.id}>
-              {p.barcode || p.id} - {p.name} - {new Date(p.expiry_date).toLocaleDateString('pt-BR')} - Estoque: {p.stock_quantity}
+              {p.barcode ? `${p.barcode} - ` : ''}{p.name} (Lote: {p.batch_number}) - Vencimento: {new Date(p.expiry_date).toLocaleDateString('pt-BR')} - Estoque: {p.stock_quantity}
             </li>
           ))}
         </ul>
