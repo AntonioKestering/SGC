@@ -14,41 +14,34 @@ export default function NewProductPage() {
     name: '',
     description: '',
     barcode: '',
-    price: '',
     price_sale: '',
     supplier_id: '',
   });
-  const [profitPercent, setProfitPercent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
-  function computeProfitPercentFromStrings(priceStr: string, priceSaleStr: string): string {
-    if (!priceStr || priceStr === '') return '-';
-    if (!priceSaleStr || priceSaleStr === '') return '-';
-    try {
-      const p = Number(String(priceStr).replace(',', '.'));
-      const ps = Number(String(priceSaleStr).replace(',', '.'));
-      if (!p || p === 0) return '-';
-      const perc = ((ps - p) / p) * 100;
-      return perc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
-    } catch {
-      return '-';
-    }
+  // Função para formatar como moeda (0.000,00)
+  function formatCurrency(value: string): string {
+    // Remove caracteres não numéricos
+    const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
+    
+    // Converte para número e divide por 100 (centavos)
+    const numberValue = parseInt(numericValue) / 100;
+    
+    // Formata como moeda brasileira
+    return numberValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
 
-  function handleProfitPercentChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = e.target.value;
-    setProfitPercent(v);
-    // recalcula priceSale se tivermos price válido
-    const priceNum = Number(String(formData.price).replace(',', '.'));
-    const percNum = Number(String(v).replace(',', '.'));
-    if (!isNaN(priceNum) && priceNum > 0 && !isNaN(percNum)) {
-      const newPriceSale = priceNum * (1 + percNum / 100);
-      setFormData({ ...formData, price_sale: String(Number(newPriceSale.toFixed(2))) });
-    }
+  function handlePriceSaleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatCurrency(e.target.value);
+    setFormData({ ...formData, price_sale: formatted });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -72,8 +65,7 @@ export default function NewProductPage() {
           name: formData.name,
           description: formData.description || null,
           barcode: formData.barcode || null,
-          price: formData.price !== '' ? Number(String(formData.price).replace(',', '.')) : null,
-          price_sale: formData.price_sale !== '' ? Number(String(formData.price_sale).replace(',', '.')) : null,
+          price_sale: formData.price_sale !== '' ? Number(String(formData.price_sale).replace(/\D/g, '')) / 100 : null,
         }),
       });
 
@@ -170,59 +162,15 @@ export default function NewProductPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="0.00"
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
               <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
               <input
                 id="price_sale"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 value={formData.price_sale}
-                onChange={(e) => {
-                  setFormData({ ...formData, price_sale: e.target.value });
-                  // atualizar percentual quando o usuário editar price_sale diretamente
-                  const pNum = Number(String(formData.price).replace(',', '.'));
-                  const psNum = Number(String(e.target.value).replace(',', '.'));
-                  if (!isNaN(pNum) && pNum > 0 && !isNaN(psNum)) {
-                    const perc = ((psNum - pNum) / pNum) * 100;
-                    setProfitPercent(String(Number(perc.toFixed(2))));
-                  } else {
-                    setProfitPercent('');
-                  }
-                }}
-                placeholder="0.00"
+                onChange={handlePriceSaleChange}
+                placeholder="0.000,00"
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-          </div>
-
-          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-            <div className="text-sm text-zinc-300">
-              <strong>Lucro (%):</strong> {computeProfitPercentFromStrings(formData.price, formData.price_sale)}
-            </div>
-            <div>
-              <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
-              <input
-                id="profit_percent"
-                type="number"
-                step="0.01"
-                value={profitPercent}
-                onChange={handleProfitPercentChange}
-                placeholder="0.00"
-                className="w-48 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
               />
             </div>
           </div>

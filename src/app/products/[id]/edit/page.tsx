@@ -15,7 +15,6 @@ interface ProductProfile {
   name: string;
   description?: string | null;
   barcode?: string | null;
-  price?: string | null;
   price_sale?: string | null;
   created_at: string;
 }
@@ -29,9 +28,7 @@ export default function EditProductPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [price, setPrice] = useState('');
   const [priceSale, setPriceSale] = useState('');
-  const [profitPercent, setProfitPercent] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,6 +36,27 @@ export default function EditProductPage() {
   const [success, setSuccess] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showBatchDetails, setShowBatchDetails] = useState(false);
+
+  // Função para formatar como moeda (0.000,00)
+  function formatCurrency(value: string): string {
+    // Remove caracteres não numéricos
+    const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
+    
+    // Converte para número e divide por 100 (centavos)
+    const numberValue = parseInt(numericValue) / 100;
+    
+    // Formata como moeda brasileira
+    return numberValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function handlePriceSaleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatCurrency(e.target.value);
+    setPriceSale(formatted);
+  }
 
   useEffect(() => {
     async function fetchProduct() {
@@ -51,17 +69,7 @@ export default function EditProductPage() {
         setName(product.name || '');
         setDescription(product.description || '');
         setBarcode(product.barcode || '');
-        setPrice(product.price != null ? String(Number(product.price).toFixed(2)) : '');
-        setPriceSale(product.price_sale != null ? String(Number(product.price_sale).toFixed(2)) : '');
-        // inicializa percentual de lucro
-        if (product.price != null && product.price !== 0 && product.price_sale != null) {
-          const p = Number(product.price);
-          const ps = Number(product.price_sale);
-          const perc = ((ps - p) / p) * 100;
-          setProfitPercent(String(Number(perc.toFixed(2))));
-        } else {
-          setProfitPercent('');
-        }
+        setPriceSale(product.price_sale != null ? formatCurrency(String(Number(product.price_sale) * 100)) : '');
       } catch (err: any) {
         console.error('Erro ao carregar produto:', err);
         setError('Produto não encontrado ou erro de carregamento.');
@@ -92,8 +100,7 @@ export default function EditProductPage() {
           name,
           description: description || null,
           barcode: barcode || null,
-          price: price !== '' ? Number(String(price).replace(',', '.')) : null,
-          price_sale: priceSale !== '' ? Number(String(priceSale).replace(',', '.')) : null,
+          price_sale: priceSale !== '' ? Number(String(priceSale).replace(/\D/g, '')) / 100 : null,
         }),
       });
 
@@ -115,8 +122,8 @@ export default function EditProductPage() {
     if (!priceStr || priceStr === '') return '-';
     if (!priceSaleStr || priceSaleStr === '') return '-';
     try {
-      const p = Number(String(priceStr).replace(',', '.'));
-      const ps = Number(String(priceSaleStr).replace(',', '.'));
+      const p = Number(String(priceStr).replace(/\D/g, '')) / 100;
+      const ps = Number(String(priceSaleStr).replace(/\D/g, '')) / 100;
       if (!p || p === 0) return '-';
       const perc = ((ps - p) / p) * 100;
       return perc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
@@ -127,14 +134,7 @@ export default function EditProductPage() {
 
   function handleProfitPercentChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
-    setProfitPercent(v);
-    // recalcula priceSale se tivermos price válido
-    const priceNum = Number(String(price).replace(',', '.'));
-    const percNum = Number(String(v).replace(',', '.'));
-    if (!isNaN(priceNum) && priceNum > 0 && !isNaN(percNum)) {
-      const newPriceSale = priceNum * (1 + percNum / 100);
-      setPriceSale(String(Number(newPriceSale.toFixed(2))));
-    }
+    // Implementação não necessária agora, pois não temos mais preço de compra
   }
 
   if (loading) {
@@ -229,59 +229,15 @@ export default function EditProductPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Compra</label>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-
-            <div>
               <label htmlFor="price_sale" className="block text-sm font-medium text-zinc-200 mb-1">Preço de Venda</label>
               <input
                 id="price_sale"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 value={priceSale}
-                onChange={(e) => {
-                  setPriceSale(e.target.value);
-                  // atualizar percentual quando o usuário editar price_sale diretamente
-                  const pNum = Number(String(price).replace(',', '.'));
-                  const psNum = Number(String(e.target.value).replace(',', '.'));
-                  if (!isNaN(pNum) && pNum > 0 && !isNaN(psNum)) {
-                    const perc = ((psNum - pNum) / pNum) * 100;
-                    setProfitPercent(String(Number(perc.toFixed(2))));
-                  } else {
-                    setProfitPercent('');
-                  }
-                }}
-                placeholder="0.00"
+                onChange={handlePriceSaleChange}
+                placeholder="0.000,00"
                 className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
-              />
-            </div>
-          </div>
-
-          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-            <div className="text-sm text-zinc-300">
-              <strong>Lucro (%):</strong> {computeProfitPercentFromStrings(price, priceSale)}
-            </div>
-            <div>
-              <label htmlFor="profit_percent" className="block text-sm font-medium text-zinc-200 mb-1">Editar Percentual de Lucro (%)</label>
-              <input
-                id="profit_percent"
-                type="number"
-                step="0.01"
-                value={profitPercent}
-                onChange={handleProfitPercentChange}
-                placeholder="0.00"
-                className="w-48 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 placeholder-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition duration-150"
               />
             </div>
           </div>
