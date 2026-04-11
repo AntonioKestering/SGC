@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { BatchEntryModal } from '@/components/BatchEntryModal';
 import { PlusCircle, Save, ArrowLeft } from 'lucide-react';
 
 export default function NewProductPage() {
@@ -23,6 +24,8 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
   function computeProfitPercentFromStrings(priceStr: string, priceSaleStr: string): string {
     if (!priceStr || priceStr === '') return '-';
@@ -83,10 +86,10 @@ export default function NewProductPage() {
         throw new Error(err.error || 'Erro ao criar produto');
       }
 
+      const { product } = await res.json();
+      setCreatedProductId(product.id);
       setSuccess(true);
-      setFormData({ name: '', description: '', barcode: '', stock_quantity: 0, expiry_date: '', price: '', price_sale: '', supplier_id: '' });
-
-      setTimeout(() => router.push('/products'), 1200);
+      setShowBatchModal(true);
     } catch (err: any) {
       setError(err.message || 'Erro ao criar produto');
     } finally {
@@ -97,6 +100,22 @@ export default function NewProductPage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
+        {createdProductId && (
+          <BatchEntryModal
+            isOpen={showBatchModal}
+            productId={createdProductId}
+            productName={formData.name}
+            onClose={() => {
+              setShowBatchModal(false);
+              setTimeout(() => router.push('/products'), 500);
+            }}
+            onSuccess={() => {
+              setShowBatchModal(false);
+              setTimeout(() => router.push('/products'), 500);
+            }}
+          />
+        )}
+
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
@@ -111,14 +130,15 @@ export default function NewProductPage() {
         </div>
 
         {success && (
-          <div className="bg-green-900 p-4 rounded-lg text-green-200 mb-6 border border-green-700">✓ Produto cadastrado com sucesso! Redirecionando...</div>
+          <div className="bg-green-900 p-4 rounded-lg text-green-200 mb-6 border border-green-700">✓ Produto cadastrado com sucesso! Adicione lotes abaixo.</div>
         )}
 
         {error && (
           <div className="bg-red-900 p-4 rounded-lg text-red-200 mb-6 border border-red-700">✕ {error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
+        {!success ? (
+          <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-zinc-200 mb-1">Nome *</label>
@@ -254,6 +274,11 @@ export default function NewProductPage() {
             </button>
           </div>
         </form>
+        ) : (
+          <div className="bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800 text-center">
+            <p className="text-zinc-300 mb-4">Para adicionar lotes de estoque, use o formulário abaixo.</p>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

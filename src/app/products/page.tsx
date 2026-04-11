@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Box, PlusCircle } from 'lucide-react';
+import { BatchDetailsModal } from '@/components/BatchDetailsModal';
+import { Box, PlusCircle, Package } from 'lucide-react';
 
 interface ProductData {
   id: string;
@@ -24,6 +25,11 @@ export default function ProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [batchStocks, setBatchStocks] = useState<Record<string, number>>({});
+  const [selectedBatchProduct, setSelectedBatchProduct] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -37,6 +43,9 @@ export default function ProductsPage() {
         }
         const json = await res.json();
         setProducts(json.products || []);
+        
+        // Fetch batch stocks for all products
+        await fetchBatchStocks(json.products || []);
       } catch (err) {
         console.error('Erro ao buscar /api/products:', err);
         setProducts([]);
@@ -47,6 +56,27 @@ export default function ProductsPage() {
 
     fetchProducts();
   }, []);
+
+  async function fetchBatchStocks(products: ProductData[]) {
+    const stocks: Record<string, number> = {};
+    
+    for (const product of products) {
+      try {
+        const res = await fetch(`/api/product-batches?product_id=${product.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          stocks[product.id] = (data.batches || []).reduce(
+            (sum: number, b: any) => sum + b.current_quantity,
+            0
+          );
+        }
+      } catch (err) {
+        console.error(`Erro ao buscar lotes do produto ${product.id}:`, err);
+      }
+    }
+    
+    setBatchStocks(stocks);
+  }
 
   async function handleDelete(id: string) {
     const confirmed = window.confirm('Tem certeza que deseja excluir este produto? Esta ação não poderá ser desfeita.');
@@ -122,6 +152,13 @@ export default function ProductsPage() {
         </button>
       </header>
 
+      <BatchDetailsModal
+        isOpen={!!selectedBatchProduct}
+        productId={selectedBatchProduct?.id || ''}
+        productName={selectedBatchProduct?.name || ''}
+        onClose={() => setSelectedBatchProduct(null)}
+      />
+
       <div className="bg-zinc-900 p-6 rounded-xl shadow-xl border border-zinc-800">
         {loading && (
           <p className="text-pink-500 text-center py-8">Carregando produtos...</p>
@@ -155,31 +192,50 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-zinc-800 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.barcode}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{p.name}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.stock_quantity ?? 0}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">{computeProfitPercent(p.price, p.price_sale)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
-                      <button
-                        onClick={() => router.push(`/products/${p.id}/edit`)}
-                        className="text-pink-500 hover:text-pink-400 transition duration-150"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="text-pink-500 hover:text-red-400 transition duration-150"
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {products.map((p) => {
+                  const totalBatchStock = batchStocks[p.id] || 0;
+                  const displayStock = totalBatchStock > 0 ? totalBatchStock : p.stock_quantity ?? 0;
+                  
+                  return (
+                    <tr key={p.id} className="hover:bg-zinc-800 transition-colors">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{p.barcode}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-zinc-100">{p.name}</td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-zinc-300 font-semibold">{displayStock}</span>
+                          {totalBatchStock > 0 && (
+                            <button
+                              onClick={() => setSelectedBatchProduct({ id: p.id, name: p.name })}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-pink-600/20 text-pink-400 hover:bg-pink-600/30 rounded transition"
+                              title="Ver lotes"
+                            >
+                              <Package className="w-3 h-3" />
+                              Lotes
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatDate(p.expiry_date)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">{computeProfitPercent(p.price, p.price_sale)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
+                        <button
+                          onClick={() => router.push(`/products/${p.id}/edit`)}
+                          className="text-pink-500 hover:text-pink-400 transition duration-150"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="text-pink-500 hover:text-red-400 transition duration-150"
+                        >
+                          Excluir
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { ShoppingCart, Eye, ArrowLeft } from 'lucide-react';
+import { CancelSaleModal } from '@/components/CancelSaleModal';
+import { ShoppingCart, Eye, ArrowLeft, X, Loader } from 'lucide-react';
 
 interface SaleItemData {
   id: string;
@@ -58,6 +59,9 @@ export default function ViewSalePage() {
   const [saleData, setSaleData] = useState<SaleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   useEffect(() => {
     async function fetchSale() {
@@ -107,6 +111,41 @@ export default function ViewSalePage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+  }
+
+  async function handleCancelConfirm(data: any) {
+    try {
+      setCancelLoading(true);
+      setCancelError('');
+
+      const response = await fetch(`/api/sales/${saleId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao cancelar venda');
+      }
+
+      const result = await response.json();
+
+      // Atualizar UI
+      setSaleData((prev) => prev ? { ...prev, status: 0 } : null);
+      setShowCancelModal(false);
+
+      // Mostrar sucesso
+      alert(`Venda cancelada com sucesso!\n\n${result.successful_restores}/${result.total_items} itens restaurados.`);
+
+      // Voltar para lista
+      router.push('/sales');
+    } catch (err: any) {
+      setCancelError(err.message || 'Erro ao cancelar');
+      console.error('Erro:', err);
+    } finally {
+      setCancelLoading(false);
+    }
   }
 
   if (loading) {
@@ -308,9 +347,35 @@ export default function ViewSalePage() {
                 <p className="text-zinc-100 whitespace-pre-wrap">{saleData.notes}</p>
               </div>
             )}
+
+            {/* Ações */}
+            {saleData.status !== 0 && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
+                >
+                  <X className="w-4 h-4" />
+                  Cancelar Venda
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Cancel Modal */}
+      <CancelSaleModal
+        saleId={saleId}
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setCancelError('');
+        }}
+        onConfirm={handleCancelConfirm}
+        loading={cancelLoading}
+        error={cancelError}
+      />
     </DashboardLayout>
   );
 }
