@@ -19,11 +19,20 @@ interface ProductData {
   created_at: string;
 }
 
+interface BatchInfo {
+  id: string;
+  product_id: string;
+  quantity: number;
+  current_quantity: number;
+  cost_price: number;
+}
+
 export default function ProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [batchStocks, setBatchStocks] = useState<Record<string, number>>({});
+  const [batchCostAverages, setBatchCostAverages] = useState<Record<string, number>>({});
   const [selectedBatchProduct, setSelectedBatchProduct] = useState<{
     id: string;
     name: string;
@@ -57,16 +66,33 @@ export default function ProductsPage() {
 
   async function fetchBatchStocks(products: ProductData[]) {
     const stocks: Record<string, number> = {};
+    const averageCosts: Record<string, number> = {};
     
     for (const product of products) {
       try {
         const res = await fetch(`/api/product-batches?product_id=${product.id}`);
         if (res.ok) {
           const data = await res.json();
-          stocks[product.id] = (data.batches || []).reduce(
+          const batches: BatchInfo[] = data.batches || [];
+          
+          // Calcula o saldo total de estoque
+          stocks[product.id] = batches.reduce(
             (sum: number, b: any) => sum + b.current_quantity,
             0
           );
+          
+          // Calcula o preço de custo médio ponderado
+          if (batches.length > 0) {
+            const totalQuantity = batches.reduce((sum: number, b: any) => sum + b.current_quantity, 0);
+            if (totalQuantity > 0) {
+              const totalCost = batches.reduce((sum: number, b: any) => sum + (b.current_quantity * b.cost_price), 0);
+              averageCosts[product.id] = totalCost / totalQuantity;
+            } else {
+              averageCosts[product.id] = 0;
+            }
+          } else {
+            averageCosts[product.id] = 0;
+          }
         }
       } catch (err) {
         console.error(`Erro ao buscar lotes do produto ${product.id}:`, err);
@@ -74,6 +100,7 @@ export default function ProductsPage() {
     }
     
     setBatchStocks(stocks);
+    setBatchCostAverages(averageCosts);
   }
 
   async function handleDelete(id: string) {
@@ -191,6 +218,7 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-zinc-800">
                 {products.map((p) => {
                   const totalBatchStock = batchStocks[p.id] || 0;
+                  const avgCostPrice = batchCostAverages[p.id] ?? 0;
                   
                   return (
                     <tr key={p.id} className="hover:bg-zinc-800 transition-colors">
@@ -211,9 +239,13 @@ export default function ProductsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">
+                        {totalBatchStock > 0 ? formatPrice(avgCostPrice) : '-'}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-300">{formatPrice(p.price_sale)}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">{computeProfitPercent(p.price, p.price_sale)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-zinc-400">
+                        {totalBatchStock > 0 ? computeProfitPercent(avgCostPrice, p.price_sale) : '-'}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
                         <button
                           onClick={() => router.push(`/products/${p.id}/edit`)}
