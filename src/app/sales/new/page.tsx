@@ -17,6 +17,7 @@ interface ProductData {
 interface SaleItem {
   id: string; // temporary ID for UI
   product_id: string;
+  batch_id?: string | null; // NOVO: rastreamento de lote
   product?: ProductData;
   quantity: number;
   unit_price: number;
@@ -55,6 +56,11 @@ export default function NewSalePage() {
   const [allProducts, setAllProducts] = useState<ProductData[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductData[]>([]);
   const [showProductDropdown, setShowProductDropdown] = useState<boolean>(false);
+
+  // Busca de lotes (PVPS)
+  const [selectedProductForBatch, setSelectedProductForBatch] = useState<ProductData | null>(null);
+  const [availableBatches, setAvailableBatches] = useState<any[]>([]);
+  const [showBatchSelector, setShowBatchSelector] = useState(false);
 
   // Busca de pacientes
   const [patientSearch, setPatientSearch] = useState<string>('');
@@ -154,7 +160,37 @@ export default function NewSalePage() {
 
   // Adicionar produto à venda
   function addProductToSale(product: ProductData) {
-    const existingItem = items.find((i) => i.product_id === product.id);
+    // Se há lotes disponíveis, mostrar seletor
+    setSelectedProductForBatch(product);
+    setShowBatchSelector(true);
+    setBarcodeSearch('');
+    setShowProductDropdown(false);
+
+    // Buscar lotes para este produto (PVPS - ordenado por expiry_date ASC)
+    fetchBatchesForProduct(product.id);
+  }
+
+  // Buscar lotes do produto
+  async function fetchBatchesForProduct(productId: string) {
+    try {
+      const res = await fetch(`/api/product-batches?product_id=${productId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableBatches(data.batches || []);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar lotes:', err);
+    }
+  }
+
+  // Confirmar adição de produto com ou sem lote
+  function confirmProductAddition(batchId?: string) {
+    if (!selectedProductForBatch) return;
+
+    const product = selectedProductForBatch;
+    const existingItem = items.find(
+      (i) => i.product_id === product.id && i.batch_id === (batchId || null)
+    );
 
     if (existingItem) {
       // Aumentar quantidade
@@ -164,6 +200,7 @@ export default function NewSalePage() {
       const newItem: SaleItem = {
         id: Math.random().toString(36),
         product_id: product.id,
+        batch_id: batchId || null,
         product,
         quantity: 1,
         unit_price: product.price_sale || 0,
@@ -174,8 +211,10 @@ export default function NewSalePage() {
       setItems([...items, newItem]);
     }
 
-    setBarcodeSearch('');
-    setShowProductDropdown(false);
+    // Limpar seletor
+    setShowBatchSelector(false);
+    setSelectedProductForBatch(null);
+    setAvailableBatches([]);
   }
 
   // Atualizar item com cálculo automático de desconto
@@ -254,6 +293,7 @@ export default function NewSalePage() {
           patient_id: patientId || null,
           items: items.map((item) => ({
             product_id: item.product_id,
+            batch_id: item.batch_id || null, // NOVO: incluir batch_id
             quantity: item.quantity,
             unit_price: item.unit_price,
             discount_amount: item.discount_amount,
@@ -404,6 +444,91 @@ export default function NewSalePage() {
                 </select>
               </div>
 
+              {/* Modal: Seletor de Lotes (PVPS) */}
+              {showBatchSelector && selectedProductForBatch && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md border border-zinc-800">
+                    <h3 className="text-lg font-semibold text-zinc-100 mb-4">
+                      Selecione um Lote - {selectedProductForBatch.name}
+                    </h3>
+
+                    {availableBatches.length === 0 ? (
+                      <div className="text-center py-6">
+                        <p className="text-zinc-400 mb-4">
+                          Nenhum lote disponível para este produto
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => confirmProductAddition()}
+                          className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition"
+                        >
+                          Continuar Sem Lote
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                          {availableBatches.map((batch) => {
+                            const expiryDate = new Date(batch.expiry_date);
+                            const daysToExpiry = Math.ceil(
+                              (expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                            );
+
+                            return (
+                              <button
+                                key={batch.id}
+                                type="button"
+                                onClick={() => confirmProductAddition(batch.id)}
+                                className={`w-full p-3 rounded-lg border text-left transition ${
+                                  daysToExpiry <= 30
+                                    ? 'bg-yellow-500/10 border-yellow-600 hover:bg-yellow-500/20'
+                                    : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'
+                                }`}
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <div className="font-medium text-zinc-100">
+                                    {batch.batch_number || `Lote #${batch.id.slice(0, 8)}`}
+                                  </div>
+                                  <div className="text-sm font-semibold text-pink-400">
+                                    {batch.current_quantity} unidades
+                                  </div>
+                                </div>
+                                <div className="text-xs text-zinc-400">
+                                  Validade: {expiryDate.toLocaleDateString('pt-BR')}
+                                  {daysToExpiry <= 30 && (
+                                    <span className="text-yellow-400 ml-2">({daysToExpiry} dias)</span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowBatchSelector(false);
+                              setSelectedProductForBatch(null);
+                            }}
+                            className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => confirmProductAddition()}
+                            className="flex-1 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition"
+                          >
+                            Sem Lote
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Seção: Buscar e Adicionar Produtos */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -462,6 +587,9 @@ export default function NewSalePage() {
                           <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400">
                             Produto
                           </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-400 w-32">
+                            Lote
+                          </th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-zinc-400 w-20">
                             Qtd
                           </th>
@@ -503,6 +631,15 @@ export default function NewSalePage() {
                                 <div className="text-xs text-zinc-500">
                                   Código: {item.product?.barcode || 'N/A'}
                                 </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-zinc-400">
+                                {item.batch_id ? (
+                                  <span className="inline-block px-2 py-1 bg-pink-600/20 text-pink-300 rounded text-xs">
+                                    Lote selecionado
+                                  </span>
+                                ) : (
+                                  <span className="text-zinc-500 text-xs">-</span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <input

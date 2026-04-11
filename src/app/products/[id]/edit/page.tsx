@@ -5,7 +5,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Edit3, Save, ArrowLeft } from 'lucide-react';
+import { BatchEntryModal } from '@/components/BatchEntryModal';
+import { BatchDetailsModal } from '@/components/BatchDetailsModal';
+import { Edit3, Save, ArrowLeft, Package } from 'lucide-react';
 
 interface ProductProfile {
   id: string;
@@ -39,6 +41,8 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showBatchDetails, setShowBatchDetails] = useState(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -160,6 +164,23 @@ export default function EditProductPage() {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
+        {productData && (
+          <>
+            <BatchEntryModal
+              isOpen={showBatchModal}
+              productId={productData.id}
+              productName={productData.name}
+              onClose={() => setShowBatchModal(false)}
+            />
+            <BatchDetailsModal
+              isOpen={showBatchDetails}
+              productId={productData.id}
+              productName={productData.name}
+              onClose={() => setShowBatchDetails(false)}
+            />
+          </>
+        )}
+
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
@@ -169,19 +190,19 @@ export default function EditProductPage() {
           </button>
           <h2 className="text-3xl font-semibold text-zinc-50 flex items-center">
             <Edit3 className="w-8 h-8 mr-3 text-pink-500" />
-            Editar Produto: {productData.name}
+            Editar Produto: {productData?.name}
           </h2>
         </div>
 
         {success && (
-          <div className="bg-green-900 p-4 rounded-lg text-green-200 mb-6 border border-green-700">✓ Produto atualizado com sucesso! Redirecionando...</div>
+          <div className="bg-green-900 p-4 rounded-lg text-green-200 mb-6 border border-green-700">✓ Produto atualizado com sucesso!</div>
         )}
 
         {error && (
           <div className="bg-red-900 p-4 rounded-lg text-red-200 mb-6 border border-red-700">✕ {error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800 mb-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-zinc-200 mb-1">Nome *</label>
             <input
@@ -316,6 +337,31 @@ export default function EditProductPage() {
             </button>
           </div>
         </form>
+
+        {/* Seção de Lotes */}
+        <div className="bg-zinc-900 p-8 rounded-xl shadow-xl border border-zinc-800">
+          <h3 className="text-xl font-semibold text-zinc-100 mb-6 flex items-center gap-2">
+            <Package className="w-5 h-5 text-pink-500" />
+            Gestão de Lotes
+          </h3>
+
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setShowBatchModal(true)}
+              className="flex-1 py-3 px-4 rounded-lg text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-zinc-900 transition duration-150"
+            >
+              + Adicionar Lote
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBatchDetails(true)}
+              className="flex-1 py-3 px-4 rounded-lg text-sm font-medium text-pink-400 border border-pink-600 hover:bg-pink-600/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-zinc-900 transition duration-150"
+            >
+              📋 Ver Lotes
+            </button>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

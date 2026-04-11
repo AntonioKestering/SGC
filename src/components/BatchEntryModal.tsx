@@ -7,9 +7,9 @@ import { X } from 'lucide-react';
 interface BatchEntryModalProps {
   isOpen: boolean;
   productId: string;
+  productName?: string;
   onClose: () => void;
-  onSubmit: (data: BatchEntryData) => Promise<void>;
-  isLoading?: boolean;
+  onSuccess?: () => void;
 }
 
 export interface BatchEntryData {
@@ -22,18 +22,19 @@ export interface BatchEntryData {
 export function BatchEntryModal({
   isOpen,
   productId,
+  productName = 'Produto',
   onClose,
-  onSubmit,
-  isLoading = false,
+  onSuccess,
 }: BatchEntryModalProps) {
   const [formData, setFormData] = useState<BatchEntryData>({
     batch_number: '',
     expiry_date: '',
-    initial_quantity: 0,
+    initial_quantity: 1,
     cost_price: null,
   });
-
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,17 +50,41 @@ export function BatchEntryModal({
       return;
     }
 
+    setLoading(true);
     try {
-      await onSubmit(formData);
+      const res = await fetch('/api/product-batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: productId,
+          batch_number: formData.batch_number || null,
+          expiry_date: formData.expiry_date,
+          initial_quantity: formData.initial_quantity,
+          cost_price: formData.cost_price,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao adicionar lote');
+      }
+
+      setSuccess(true);
       setFormData({
         batch_number: '',
         expiry_date: '',
-        initial_quantity: 0,
+        initial_quantity: 1,
         cost_price: null,
       });
-      onClose();
+
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 800);
     } catch (err: any) {
       setError(err.message || 'Erro ao adicionar lote');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,7 +94,10 @@ export function BatchEntryModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md border border-zinc-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-zinc-100">Entrada de Estoque</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-100">Entrada de Estoque</h2>
+            <p className="text-sm text-zinc-400 mt-1">{productName}</p>
+          </div>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-200"
@@ -78,13 +106,20 @@ export function BatchEntryModal({
           </button>
         </div>
 
+        {success && (
+          <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <p className="text-green-400 text-sm">✓ Lote adicionado com sucesso!</p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {!success ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
           {/* Número do Lote (Batch) */}
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -155,20 +190,25 @@ export function BatchEntryModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={isLoading}
+              disabled={loading}
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg font-medium transition disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition disabled:opacity-50"
             >
-              {isLoading ? 'Adicionando...' : 'Adicionar Lote'}
+              {loading ? 'Adicionando...' : 'Adicionar Lote'}
             </button>
           </div>
         </form>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-zinc-300">Redirecionando...</p>
+          </div>
+        )}
       </div>
     </div>
   );

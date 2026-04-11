@@ -67,17 +67,13 @@ ALTER TABLE products
 CREATE TABLE product_batches (
     id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id uuid NOT NULL, -- FK para a tabela products
-    organization_id uuid NOT NULL,
-    
+    organization_id uuid NOT NULL,    
     batch_number VARCHAR(50), -- O lote que vem impresso na caixa pelo fabricante
-    expiry_date DATE NOT NULL, -- A validade específica deste lote
-    
+    expiry_date DATE NOT NULL, -- A validade específica deste lote    
     initial_quantity integer NOT NULL, -- Quantidade que entrou
-    current_quantity integer NOT NULL DEFAULT 0, -- Quantidade que ainda resta
-    
+    current_quantity integer NOT NULL DEFAULT 0, -- Quantidade que ainda resta    
     cost_price numeric(15,2), -- Preço de custo deste lote específico
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    
+    created_at timestamp with time zone NOT NULL DEFAULT now(),    
     -- Relacionamento (Chave Estrangeira)
     CONSTRAINT fk_product_batch 
         FOREIGN KEY (product_id) 
