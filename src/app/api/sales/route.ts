@@ -222,8 +222,7 @@ export async function POST(request: Request) {
       const { error: updateError } = await supabase
         .from('product_batches')
         .update({ 
-          current_quantity: newQty,
-          updated_at: new Date().toISOString(),
+          current_quantity: newQty
         })
         .eq('id', batchId)
         .eq('organization_id', profile.organization_id);

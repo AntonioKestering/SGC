@@ -84,8 +84,7 @@ export async function PUT(request: Request, context: any) {
         batch_number: body.batch_number ?? undefined,
         expiry_date: body.expiry_date ?? undefined,
         current_quantity: body.current_quantity ?? undefined,
-        cost_price: body.cost_price ?? undefined,
-        updated_at: new Date().toISOString(),
+        cost_price: body.cost_price ?? undefined
       })
       .eq('id', batchId)
       .select()
